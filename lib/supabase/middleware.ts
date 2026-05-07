@@ -1,0 +1,79 @@
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+import {
+  isAllowlistedEmail,
+  primaryEmail,
+} from "@/lib/catalogue/allowlist";
+
+export async function updateSession(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+  const isApi = path.startsWith("/api/");
+  const isPublic =
+    path === "/login" ||
+    path.startsWith("/auth/") ||
+    path === "/unauthorized";
+
+  if (isApi) {
+    return supabaseResponse;
+  }
+
+  if (!user && !isPublic) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", path);
+    return NextResponse.redirect(url);
+  }
+
+  if (!user && path === "/unauthorized") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", "/");
+    return NextResponse.redirect(url);
+  }
+
+  if (user) {
+    const email = primaryEmail(user);
+    if (!isAllowlistedEmail(email)) {
+      if (
+        path !== "/unauthorized" &&
+        !path.startsWith("/auth/")
+      ) {
+        return NextResponse.redirect(new URL("/unauthorized", request.url));
+      }
+    } else if (path === "/login") {
+      const next = request.nextUrl.searchParams.get("next") || "/";
+      const safe = next.startsWith("/") ? next : "/";
+      return NextResponse.redirect(new URL(safe, request.url));
+    }
+  }
+
+  return supabaseResponse;
+}

@@ -2,7 +2,10 @@ import { Buffer } from "node:buffer";
 
 import { NextResponse } from "next/server";
 
-import { assertCatalogueAccess } from "@/lib/catalogue/access";
+import {
+  assertCatalogueRead,
+  assertCatalogueWrite,
+} from "@/lib/catalogue/access";
 import { assertDatasetSlug, catalogueMdPath } from "@/lib/catalogue/path";
 import {
   defaultBranch,
@@ -18,7 +21,7 @@ type RouteCtx = { params: Promise<{ id: string }> };
 const LIMIT = 512 * 1024;
 
 export async function GET(req: Request, ctx: RouteCtx) {
-  const denied = await assertCatalogueAccess(req);
+  const denied = await assertCatalogueRead(req);
   if (denied) return denied;
   const { id } = await ctx.params;
   if (!assertDatasetSlug(id)) {
@@ -53,7 +56,7 @@ export async function GET(req: Request, ctx: RouteCtx) {
 }
 
 export async function PUT(req: Request, ctx: RouteCtx) {
-  const denied = await assertCatalogueAccess(req);
+  const denied = await assertCatalogueWrite(req);
   if (denied) return denied;
   const { id } = await ctx.params;
   if (!assertDatasetSlug(id)) {
