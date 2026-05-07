@@ -391,6 +391,6 @@ Before calling v1 “done”, verify:
 ## 16. Document control
 
 - **Supersedes:** informal architecture discussion for implementation purposes.
-- **Companion:** `high-level-project.md` remains background reading; **this file** is binding for build decisions when they differ in level of detail.
+- **Companion:** `docs/high-level-project.md` remains background reading; **this file** is binding for build decisions when they differ in level of detail.
 - **Implementation order:** The **Implementation phases** section (six phases + guardrails) is the recommended execution sequence; keep it updated if phase boundaries change.
 - **Updates:** When the team changes schema, auth policy, or routes, update **this file** in the same change set whenever possible.

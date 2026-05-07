@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dataset-registry.local/schema/dataset.schema.json",
+  "title": "Dataset catalogue entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "short_description",
+    "internal_storage_path",
+    "modality",
+    "anatomy",
+    "task",
+    "access_level",
+    "created_by",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$",
+      "description": "Stable slug matching the JSON filename stem (no path or extension)."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "short_description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "internal_storage_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "description": "Canonical path on the group storage server; see docs/metadata_guidelines.md."
+    },
+    "modality": {
+      "type": "string",
+      "enum": [
+        "CT",
+        "MRI",
+        "PET",
+        "XRay",
+        "ultrasound",
+        "microscopy",
+        "pathology",
+        "mixed",
+        "other"
+      ]
+    },
+    "anatomy": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Organ, region, or anatomical scope; normalize when possible."
+    },
+    "task": {
+      "type": "string",
+      "enum": [
+        "segmentation",
+        "detection",
+        "classification",
+        "registration",
+        "reconstruction",
+        "other"
+      ]
+    },
+    "access_level": {
+      "type": "string",
+      "enum": ["public", "internal", "restricted"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "deprecated"],
+      "description": "Optional lifecycle hint; omit if unknown."
+    },
+    "n_patients": { "type": "integer", "minimum": 0 },
+    "n_studies": { "type": "integer", "minimum": 0 },
+    "n_images": { "type": "integer", "minimum": 0 },
+    "dimensionality": {
+      "type": "string",
+      "enum": ["2D", "3D", "mixed"]
+    },
+    "license": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "Licence identifier or short name; non-secret."
+    },
+    "access_notes": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "How to obtain access or caveats; no secrets or credentials."
+    },
+    "created_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Group member id, email handle, or ORCID URI per local convention."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

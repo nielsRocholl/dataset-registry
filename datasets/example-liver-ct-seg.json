@@ -1,0 +1,20 @@
+{
+  "id": "example-liver-ct-seg",
+  "name": "Example liver CT segmentation benchmark",
+  "short_description": "Curated abdominal CT subset for benchmarking liver organ segmentation; synthetic-style metadata for catalogue testing only.",
+  "internal_storage_path": "/group/proj-data/example-liver-ct-seg/",
+  "modality": "CT",
+  "anatomy": "liver",
+  "task": "segmentation",
+  "access_level": "internal",
+  "status": "active",
+  "n_patients": 120,
+  "n_studies": 340,
+  "n_images": 12800,
+  "dimensionality": "3D",
+  "license": "Internal use only",
+  "access_notes": "Contact the group data steward; no public download.",
+  "created_by": "dataset-registry-ci",
+  "created_at": "2026-05-07T12:00:00Z",
+  "updated_at": "2026-05-07T12:00:00Z"
+}
