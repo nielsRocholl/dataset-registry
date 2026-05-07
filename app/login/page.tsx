@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { LayersIcon } from "lucide-react";
-
+import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "@/components/login-form";
 
 export default async function LoginPage({
@@ -13,19 +11,17 @@ export default async function LoginPage({
   const error = typeof sp.error === "string" ? sp.error : undefined;
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <Link
-          href="/"
-          className="flex items-center gap-2 self-center font-medium text-foreground"
-        >
-          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <LayersIcon className="size-4" />
-          </div>
+    <AuthShell>
+      <header className="flex flex-col gap-2">
+        <p className="text-[length:var(--text-xs)] uppercase tracking-[0.14em] text-muted-foreground">
+          Diagnostic Image Analysis Group
+        </p>
+        <h1 className="text-[length:var(--text-3xl)] font-semibold leading-tight tracking-[-0.03em] text-foreground md:text-[length:var(--text-4xl)]">
           Dataset catalogue
-        </Link>
-        <LoginForm next={next} error={error} />
-      </div>
-    </div>
+        </h1>
+      </header>
+
+      <LoginForm next={next} error={error} />
+    </AuthShell>
   );
 }

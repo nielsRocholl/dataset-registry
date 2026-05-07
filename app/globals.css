@@ -190,3 +190,15 @@ body {
     @apply font-sans;
   }
 }
+
+/* Auth surfaces: clearer edge + raised fill vs page bg (claude-design). */
+@layer components {
+  .auth-panel {
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in oklch, var(--foreground) 12%, var(--border));
+    background-color: color-mix(in oklch, var(--muted) 36%, var(--background));
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 5%, transparent),
+      0 12px 42px -18px color-mix(in oklch, var(--foreground) 16%, transparent);
+  }
+}

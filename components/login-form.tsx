@@ -6,13 +6,10 @@ import { createBrowserSupabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Field, FieldDescription, FieldGroup } from "@/components/ui/field";
+  Field,
+  FieldDescription,
+  FieldGroup,
+} from "@/components/ui/field";
 
 type LoginFormProps = {
   next?: string;
@@ -48,23 +45,30 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Sign in</CardTitle>
-          <CardDescription>
-            Continue with GitHub. Your primary email must appear in{" "}
-            <code className="rounded bg-muted px-1">CATALOGUE_ALLOWLIST_EMAILS</code>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
+    <div
+      className={cn(
+        "auth-panel px-6 py-8 md:px-8 md:py-10",
+        className,
+      )}
+      {...props}
+    >
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4">
+          <h2 className="text-[length:var(--text-xl)] font-medium tracking-[-0.02em] text-foreground">
+            Sign in with GitHub
+          </h2>
+          <p className="max-w-[62ch] text-[length:var(--text-base)] leading-relaxed text-muted-foreground">
+            This catalogue is restricted to approved members of the Diagnostic
+            Image Analysis Group. If your GitHub account is not cleared by the
+            maintainers yet, finishing sign-in will send you to a short page that
+            explains next steps—you will not see dataset content.
+          </p>
+          <FieldGroup className="mt-4">
             <Field>
               <Button
-                variant="outline"
                 type="button"
                 disabled={pending}
-                className="w-full"
+                className="h-11 w-full text-[length:var(--text-sm)] font-medium shadow-none transition-[transform,background-color,color,box-shadow] duration-[150ms] [transition-timing-function:cubic-bezier(0.25,1,0.5,1)] hover:-translate-y-px hover:shadow-[0_4px_14px_-2px_color-mix(in_oklch,var(--color-accent)_32%,transparent)] active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                 onClick={() => void signInGitHub()}
               >
                 <svg
@@ -79,15 +83,20 @@ export function LoginForm({
                 </svg>
                 Continue with GitHub
               </Button>
+              <FieldDescription className="mx-auto mt-6 max-w-[56ch] text-center text-[length:var(--text-xs)] leading-relaxed text-muted-foreground">
+                By continuing you use GitHub to prove identity only; access is still
+                decided by DIAG maintainers inside this application.
+              </FieldDescription>
             </Field>
             {error === "auth" ? (
-              <FieldDescription className="text-center text-destructive">
-                Sign-in failed. Check GitHub → Supabase redirects, then try again.
+              <FieldDescription className="text-center text-[length:var(--text-sm)] text-destructive">
+                Sign-in failed. Confirm Supabase Redirect URLs match this host and try
+                again.
               </FieldDescription>
             ) : null}
           </FieldGroup>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
