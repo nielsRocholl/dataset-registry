@@ -1,0 +1,13 @@
+{
+  "id": "test2",
+  "name": "test",
+  "short_description": "test",
+  "internal_storage_path": "test",
+  "modality": "CT",
+  "anatomy": "test",
+  "task": "segmentation",
+  "access_level": "internal",
+  "created_by": "test",
+  "created_at": "2026-05-08T10:00:17.268Z",
+  "updated_at": "2026-05-08T10:00:17.268Z"
+}
