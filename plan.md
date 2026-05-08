@@ -75,13 +75,13 @@ Work proceeds in **six phases**. Each phase has a clear exit: something runnable
 
 ### Phase 5 — Read-only catalogue UI
 
-**Goal:** Minimal shadcn UI: list, search/filters, detail—claude-design-aligned typography and calm layout (§9).
+**Goal:** Minimal shadcn UI: list, search/filters, detail—implemented in the Claude-style UI/UX contract from §9, not as a generic dashboard.
 
 | Step | What |
 |------|------|
 | Pages | `/login`, `/datasets`, `/datasets/[id]` wired to `generated/index.json` (or build-time data). |
-| UI | shadcn only; FieldGroup/Field for any small forms on this phase if needed (§9.1). |
-| Design | Follow `.cursor/agents/claude-design.md`: restrained palette, one accent, readable hierarchy. |
+| UI | shadcn only; FieldGroup/Field for any small forms on this phase if needed (§9.1); reuse the shared Claude-style shell, surface, typography, and control tokens before adding new styling. |
+| Design | Mandatory: follow `.cursor/agents/claude-design.md` and §9.2 for every page/component touched. For catalogue browsing, copy Claude's `/new` app model concretely: fixed desktop sidebar, calm blank canvas, centered command/search composer, compact filter controls in the composer footer, and recents-style dataset rows. No top-nav dashboard, hero marketing page, filter panel, or table-first layout for the primary browse flow. |
 
 **Exit criteria:** Authenticated users can browse and filter the sample data end-to-end on Vercel preview/production.
 
@@ -93,10 +93,10 @@ Work proceeds in **six phases**. Each phase has a clear exit: something runnable
 
 | Step | What |
 |------|------|
-| Forms | `/datasets/new`, `/datasets/[id]/edit` with client + server schema validation (§6). |
+| Forms | `/datasets/new`, `/datasets/[id]/edit` with client + server schema validation (§6), using the Claude-style form rhythm from §9.2: dense but calm sections, FieldGroup/Field, semantic tokens, and minimal required fields first. |
 | Writes | Connect forms to Phase 3 handlers; after commit, site reflects new data per §12 (rebuild / regenerated index). |
 | MCP ops | Vercel MCP: **`deploy_to_vercel`**, **`get_deployment`**, **`get_runtime_logs`** when debugging; Supabase MCP for auth-related checks—**always scoped to the catalogue project**. |
-| Done | Walk through §13 acceptance; tighten §14 maintenance notes in README. |
+| Done | Walk through §13 acceptance; tighten §14 maintenance notes in README; confirm any frontend changes still obey the Claude-style UI/UX contract in §9.2. |
 
 **Exit criteria:** §13 checklist satisfied; PhD maintainers can follow README + this doc to change schema and deploy without touching Seekly.
 
@@ -318,16 +318,22 @@ Use a clear convention (e.g. `catalogue: add dataset <id>` / `catalogue: update 
 
 ### 9.2 Design direction (claude-design, adapted for this product)
 
-Apply **`.cursor/agents/claude-design.md`** as the aesthetic guide: editorial typography scale, restrained neutrals, **one** accent used sparingly, structured density (clear hierarchy, not empty decorative chrome), purposeful motion (respect `prefers-reduced-motion`). For this internal tool, prefer **clarity and calm** over trendy gradients or decorative glass.
+Apply **`.cursor/agents/claude-design.md`** as a binding UI/UX contract, not an optional aesthetic suggestion. Any agent changing frontend layout, pages, shared components, forms, typography, color, motion, spacing, or interaction states must read that file first and implement the app as a close Claude-style product experience adapted to dataset-catalogue content.
+
+The product may serve a different purpose than Claude, but its frontend should use the same design language: editorial typography, warm restrained neutrals, **one** accent used sparingly, dense but calm information structure, border-first surfaces, compact controls, purposeful motion, and `prefers-reduced-motion`. Avoid generic SaaS/admin-dashboard patterns, decorative gradient hero sections, glassmorphism, loud palettes, oversized marketing layouts, and one-off component styling that bypasses the shared tokens.
+
+For catalogue pages, “Claude-style” is structural, not only a color palette. Authenticated screens must transpose Claude's `/new` shell and interaction model: a fixed left sidebar on desktop with product wordmark, icon-led navigation, recent items, and bottom user controls; a quiet main canvas; a centered serif greeting/title with a restrained terracotta mark; a large rounded composer as the primary search/input surface; compact chips or selects in the composer footer; and result rows that read like Claude recents, not a spreadsheet. Detail and form pages must stay inside the same shell and use soft grouped surfaces that feel connected to the recents/list treatment.
+
+When implementing frontend work, first extend or reuse shared Claude-style primitives and CSS tokens, then compose pages from those pieces. If a new UI element cannot be expressed with the existing primitives, add the smallest reusable primitive that matches this contract and use it immediately.
 
 **v1 UI scope (minimal):**
 
 - **Routes:** `/login`, `/` or `/datasets` (list), `/datasets/[id]` (detail), `/datasets/new` (add), `/datasets/[id]/edit` (edit)—names may follow Next.js conventions; keep the surface **small**.
-- **List:** table or dense list + search input + a **few** filters (e.g. modality, task including segmentation, access)—omit `status` until the schema/UI agree it adds value.
+- **List:** centered composer-first search + a **few** compact filters (e.g. modality, task including segmentation, access) + recents-style dataset rows. Use a table only for secondary dense data, never as the primary catalogue browsing surface.
 - **Detail:** readable sections (identity, **internal storage path**, segmentation-related tags, access, references) using Card / Separator / Badge as appropriate.
 - **Forms:** minimal required fields first; optional fields behind clear sections or accordions **only if** needed to avoid clutter.
 
-**Maintainability:** Avoid bespoke layout frameworks. Pages should compose a small set of shared layout components (e.g. page header, filter bar, form sections) implemented with shadcn primitives.
+**Maintainability:** Avoid bespoke layout frameworks. Pages should compose the shared Claude-like app shell, composer/list patterns, and semantic design tokens before adding page-specific styling. If a future agent needs a new frontend surface, it should first ask which part of the Claude shell/composer/list/detail model it maps to.
 
 ---
 
@@ -377,7 +383,7 @@ Before calling v1 “done”, verify:
 1. **Change workflow:** Schema and guidelines live in the repo; update `dataset.schema.json` and `metadata_guidelines.md` together, then adjust the form and Route Handler validation in the same change set.
 2. **Add a filter:** Extend `generated/index.json` generation and add one filter control using existing shadcn components—avoid new dependencies.
 3. **Incident:** Revoke and rotate GitHub credentials via Vercel env; audit Supabase allowlist; review recent commits touching `datasets/` in GitHub history.
-4. **Design tweaks:** Stay inside shadcn + design tokens; run `shadcn` CLI docs when touching components.
+4. **Design tweaks:** Stay inside shadcn + the shared Claude shell/composer/list/detail patterns; reread `.cursor/agents/claude-design.md` and run `shadcn` CLI docs when touching components. Do not reintroduce top-nav dashboards, standalone filter panels, table-first browsing, decorative gradients, or unrelated component frameworks.
 
 ---
 

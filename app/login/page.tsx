@@ -12,13 +12,12 @@ export default async function LoginPage({
 
   return (
     <AuthShell>
-      <header className="flex flex-col gap-2">
-        <p className="text-[length:var(--text-xs)] uppercase tracking-[0.14em] text-muted-foreground">
-          Diagnostic Image Analysis Group
+      <header className="flex flex-col gap-3">
+        <p className="ui-kicker">Diagnostic Image Analysis Group</p>
+        <h1 className="ui-title">Dataset catalogue</h1>
+        <p className="ui-copy">
+          Internal dataset metadata and storage paths for approved group members.
         </p>
-        <h1 className="text-[length:var(--text-3xl)] font-semibold leading-tight tracking-[-0.03em] text-foreground md:text-[length:var(--text-4xl)]">
-          Dataset catalogue
-        </h1>
       </header>
 
       <LoginForm next={next} error={error} />

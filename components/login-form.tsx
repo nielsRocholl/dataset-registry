@@ -23,23 +23,38 @@ export function LoginForm({
   ...props
 }: LoginFormProps) {
   const [pending, setPending] = useState(false);
+  const [oauthMessage, setOauthMessage] = useState<string | null>(null);
 
   async function signInGitHub() {
     setPending(true);
+    setOauthMessage(null);
     try {
       const supabase = createBrowserSupabase();
       const origin = window.location.origin;
       const safeNext = next?.startsWith("/") ? next : "/";
-      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
           redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+          scopes: "read:user user:email",
+          skipBrowserRedirect: true,
         },
       });
       if (oauthErr) {
+        setOauthMessage(oauthErr.message || "Could not start GitHub sign-in.");
         setPending(false);
+        return;
       }
-    } catch {
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      setOauthMessage("No OAuth URL returned. Check Supabase GitHub provider and env keys.");
+      setPending(false);
+    } catch (e) {
+      setOauthMessage(
+        e instanceof Error ? e.message : "Could not start sign-in (storage or network).",
+      );
       setPending(false);
     }
   }
@@ -47,28 +62,28 @@ export function LoginForm({
   return (
     <div
       className={cn(
-        "auth-panel px-6 py-8 md:px-8 md:py-10",
+        "auth-panel px-5 py-6 sm:px-6 sm:py-7 md:px-7",
         className,
       )}
       {...props}
     >
-      <div className="flex flex-col gap-8">
+      <div className="relative flex flex-col gap-6">
         <div className="flex flex-col gap-4">
-          <h2 className="text-[length:var(--text-xl)] font-medium tracking-[-0.02em] text-foreground">
+          <h2 className="ui-section-title">
             Sign in with GitHub
           </h2>
-          <p className="max-w-[62ch] text-[length:var(--text-base)] leading-relaxed text-muted-foreground">
+          <p className="ui-copy">
             This catalogue is restricted to approved members of the Diagnostic
             Image Analysis Group. If your GitHub account is not cleared by the
             maintainers yet, finishing sign-in will send you to a short page that
-            explains next steps—you will not see dataset content.
+            explains next steps. You will not see dataset content.
           </p>
-          <FieldGroup className="mt-4">
+          <FieldGroup className="pt-2">
             <Field>
               <Button
                 type="button"
                 disabled={pending}
-                className="h-11 w-full text-[length:var(--text-sm)] font-medium shadow-none transition-[transform,background-color,color,box-shadow] duration-[150ms] [transition-timing-function:cubic-bezier(0.25,1,0.5,1)] hover:-translate-y-px hover:shadow-[0_4px_14px_-2px_color-mix(in_oklch,var(--color-accent)_32%,transparent)] active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                className="h-10 w-full"
                 onClick={() => void signInGitHub()}
               >
                 <svg
@@ -83,7 +98,7 @@ export function LoginForm({
                 </svg>
                 Continue with GitHub
               </Button>
-              <FieldDescription className="mx-auto mt-6 max-w-[56ch] text-center text-[length:var(--text-xs)] leading-relaxed text-muted-foreground">
+              <FieldDescription className="mx-auto mt-5 max-w-[54ch] text-center text-[length:var(--text-xs)] leading-relaxed">
                 By continuing you use GitHub to prove identity only; access is still
                 decided by DIAG maintainers inside this application.
               </FieldDescription>
@@ -92,6 +107,11 @@ export function LoginForm({
               <FieldDescription className="text-center text-[length:var(--text-sm)] text-destructive">
                 Sign-in failed. Confirm Supabase Redirect URLs match this host and try
                 again.
+              </FieldDescription>
+            ) : null}
+            {oauthMessage ? (
+              <FieldDescription className="text-center text-[length:var(--text-sm)] text-destructive">
+                {oauthMessage}
               </FieldDescription>
             ) : null}
           </FieldGroup>
