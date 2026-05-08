@@ -41,6 +41,11 @@ Aligned with **plan.md §9** (Frontend — stack and UI rules).
 
 - **MUST BEFORE shipping any user-facing layout or visuals:** Read and apply **`.cursor/agents/claude-design.md`** (same as **/ claude‑design** in-repo).
 - **MUST:** Restrained neutrals, **one accent** sparingly, editorial typography/scale discipline, structured density (§9.2): **calm internal tool**, not template chrome; respect **`prefers-reduced-motion`**.
+- **MUST:** Treat “Claude-style” as a structural model, not a palette. Authenticated catalogue UI must use the existing Claude-like app shell: fixed desktop sidebar, icon-led nav, quiet canvas, centered composer/list browsing model, recents-style rows, compact detail surfaces, and bottom user controls.
+- **MUST BEFORE Phase 6 frontend edits:** Inspect and extend the existing UI foundation before adding new surfaces: `app/globals.css`, `components/catalogue-shell.tsx`, `components/dataset-list.tsx`, `app/datasets/[id]/page.tsx`, and `components/ui/*`.
+- **MUST for Phase 6 add/edit routes:** Implement `/datasets/new` and `/datasets/[id]/edit` inside the same `CatalogueShell` route family. Use compact back/title headers, soft grouped form sections that match the detail page, FieldGroup/Field controls, semantic tokens, restrained primary actions, and minimal required fields first.
+- **MUST NOT:** Reintroduce top-nav dashboards, standalone admin/form pages, marketing heroes, dashboard card grids, table-first browsing, decorative gradients/noise, raw palette status colors, `transition-all`, `space-x-*`/`space-y-*`, or another component framework.
+- **MUST VERIFY UI RULES:** For frontend changes, run targeted searches for `transition-all`, `space-x`/`space-y`, raw Tailwind status palettes, decorative gradients/noise backgrounds, and locale-dependent date formatting such as `toLocaleString()` in `app`/`components`.
 
 **Skipping H3a or H3b before UI work violates these hard rules.**
 

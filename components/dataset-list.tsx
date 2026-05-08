@@ -212,8 +212,8 @@ export function DatasetList({ datasets, generatedAt }: DatasetListProps) {
               <FieldLabel htmlFor="dataset-search" className="sr-only">
                 Search datasets
               </FieldLabel>
-              <div className="flex min-h-24 items-start gap-4 pt-0.5">
-                <SearchIcon className="mt-0.5 size-8 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="flex min-h-20 items-start gap-4 pt-0.5">
+                <SearchIcon className="mt-0.5 size-6 shrink-0 text-muted-foreground" aria-hidden />
                 <Input
                   id="dataset-search"
                   type="search"
@@ -221,7 +221,7 @@ export function DatasetList({ datasets, generatedAt }: DatasetListProps) {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   autoComplete="off"
-                  className="h-auto border-0 bg-transparent px-0 py-0 text-[length:var(--text-2xl)] leading-[1.16] shadow-none placeholder:text-muted-foreground focus-visible:ring-0 md:text-[length:var(--text-2xl)]"
+                  className="h-auto border-0 bg-transparent px-0 py-0 text-[length:var(--text-lg)] leading-[1.25] shadow-none placeholder:text-muted-foreground focus-visible:ring-0 md:text-[length:var(--text-lg)]"
                 />
               </div>
             </Field>

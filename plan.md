@@ -93,7 +93,7 @@ Work proceeds in **six phases**. Each phase has a clear exit: something runnable
 
 | Step | What |
 |------|------|
-| Forms | `/datasets/new`, `/datasets/[id]/edit` with client + server schema validation (§6), using the Claude-style form rhythm from §9.2: dense but calm sections, FieldGroup/Field, semantic tokens, and minimal required fields first. |
+| Forms | `/datasets/new`, `/datasets/[id]/edit` with client + server schema validation (§6), implemented inside the existing Claude-like catalogue shell from §9.2. Use the same fixed sidebar, quiet canvas, compact back/title header, soft grouped detail surfaces, FieldGroup/Field form layout, semantic tokens, and minimal required fields first. Do **not** introduce a top-nav admin screen, dashboard card grid, wizard framework, or standalone form chrome. |
 | Writes | Connect forms to Phase 3 handlers; after commit, site reflects new data per §12 (rebuild / regenerated index). |
 | MCP ops | Vercel MCP: **`deploy_to_vercel`**, **`get_deployment`**, **`get_runtime_logs`** when debugging; Supabase MCP for auth-related checks—**always scoped to the catalogue project**. |
 | Done | Walk through §13 acceptance; tighten §14 maintenance notes in README; confirm any frontend changes still obey the Claude-style UI/UX contract in §9.2. |
@@ -331,7 +331,7 @@ When implementing frontend work, first extend or reuse shared Claude-style primi
 - **Routes:** `/login`, `/` or `/datasets` (list), `/datasets/[id]` (detail), `/datasets/new` (add), `/datasets/[id]/edit` (edit)—names may follow Next.js conventions; keep the surface **small**.
 - **List:** centered composer-first search + a **few** compact filters (e.g. modality, task including segmentation, access) + recents-style dataset rows. Use a table only for secondary dense data, never as the primary catalogue browsing surface.
 - **Detail:** readable sections (identity, **internal storage path**, segmentation-related tags, access, references) using Card / Separator / Badge as appropriate.
-- **Forms:** minimal required fields first; optional fields behind clear sections or accordions **only if** needed to avoid clutter.
+- **Forms:** add/edit pages must stay inside the shared Claude-like app shell and visually extend the existing detail/list language: compact back affordance, editorial title, soft grouped surfaces, FieldGroup/Field controls, semantic validation states, and a restrained primary action. Minimal required fields first; optional fields behind clear sections or accordions **only if** needed to avoid clutter. No top-nav admin pages, dashboard card grids, or unrelated form frameworks.
 
 **Maintainability:** Avoid bespoke layout frameworks. Pages should compose the shared Claude-like app shell, composer/list patterns, and semantic design tokens before adding page-specific styling. If a future agent needs a new frontend surface, it should first ask which part of the Claude shell/composer/list/detail model it maps to.
 
