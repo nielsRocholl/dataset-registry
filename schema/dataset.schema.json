@@ -26,7 +26,12 @@
       "description": "Stable slug matching the JSON filename stem (no path or extension)."
     },
     "name": { "type": "string", "minLength": 1, "maxLength": 512 },
-    "short_description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "short_description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "Catalogue description for list and detail summary; need not be brief (UI label: Description)."
+    },
     "internal_storage_path": {
       "type": "string",
       "minLength": 1,

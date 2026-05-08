@@ -14,7 +14,7 @@ Normative companion to [`schema/dataset.schema.json`](../schema/dataset.schema.j
 |---------------------|---------|
 | `id`                | Stable slug; never rename files casually—treat as primary key in Git. Example: `example-liver-ct-seg`. |
 | `name`              | Human title. Example: `Example liver CT segmentation benchmark`. |
-| `short_description` | One paragraph for list cards. Example: `Curated liver CT subset for benchmarking organ segmentation.` |
+| `short_description` | **Description** — shown on list cards and detail summary. Can be a full paragraph; not limited to a “short” blurb (schema allows up to 2000 characters). Example: `Curated liver CT subset for benchmarking organ segmentation; includes reader consensus masks and train/val/test splits.` |
 
 ### `status` (optional)
 

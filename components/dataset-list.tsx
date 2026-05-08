@@ -147,6 +147,18 @@ export function DatasetList({ datasets, generatedAt }: DatasetListProps) {
   const [task, setTask] = useState<string>(ALL);
   const [access, setAccess] = useState<string>(ALL);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#catalogue-search") return;
+    document.getElementById("catalogue-search")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    window.setTimeout(() => {
+      document.getElementById("dataset-search")?.focus();
+    }, 180);
+  }, []);
+
   const modalityOptions = useMemo(
     () =>
       Array.from(new Set(datasets.map((d) => d.modality))).sort() as Modality[],

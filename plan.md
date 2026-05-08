@@ -222,7 +222,7 @@ The high-level doc lists many possible fields. For **v1**, enforce a **small req
 
 ### 5.1 Identity (required)
 
-- `id`, `name`, `short_description`
+- `id`, `name`, `short_description` (app UI: **Description**)
 - **`status` is not required** for v1 (optional only if present in schema; do not block forms on it).
 
 ### 5.2 Storage location (required)

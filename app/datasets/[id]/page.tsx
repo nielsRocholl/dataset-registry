@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,7 +17,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { getDatasetById, getDatasetIds } from "@/lib/catalogue/load-index";
+import { getCanEdit } from "@/lib/catalogue/editor-session";
+import { getDatasetIds } from "@/lib/catalogue/load-index";
+import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
+import { cn } from "@/lib/utils";
+
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return getDatasetIds().map((id) => ({ id }));
@@ -56,10 +62,12 @@ export default async function DatasetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const dataset = getDatasetById(id);
+  const dataset = await getDatasetEntryServer(id);
   if (!dataset) {
     notFound();
   }
+
+  const canEdit = await getCanEdit();
 
   return (
     <main className="flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12">
@@ -74,17 +82,30 @@ export default async function DatasetDetailPage({
 
         <header className="rounded-3xl border border-border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-7 sm:py-7">
           <div className="flex flex-col gap-5">
-            <div className="flex items-start gap-4">
-              <AsteriskIcon className="mt-1 size-9 shrink-0 text-brand" aria-hidden />
-              <div className="min-w-0">
-                <p className="ui-kicker">Dataset</p>
-                <h1 className="ui-title mt-2 text-[length:var(--text-3xl)]">
-                  {dataset.name}
-                </h1>
-                <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
-                  {dataset.short_description}
-                </p>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4">
+                <AsteriskIcon className="mt-1 size-9 shrink-0 text-brand" aria-hidden />
+                <div className="min-w-0">
+                  <p className="ui-kicker">Dataset</p>
+                  <h1 className="ui-title mt-2 text-[length:var(--text-3xl)]">
+                    {dataset.name}
+                  </h1>
+                  <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
+                    {dataset.short_description}
+                  </p>
+                </div>
               </div>
+              {canEdit ? (
+                <Link
+                  href={`/datasets/${dataset.id}/edit`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "shrink-0 self-start sm:mt-1",
+                  )}
+                >
+                  Edit
+                </Link>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap gap-1.5">

@@ -229,7 +229,7 @@ Dataset identity:
 - id
 - name
 - acronym
-- short description
+- description (summary for catalogue list/detail; in JSON: `short_description`)
 - long description
 
 Data characteristics:

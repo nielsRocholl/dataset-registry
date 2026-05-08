@@ -41,6 +41,52 @@ type ContentsFileResp = {
   encoding?: string;
 };
 
+type ContentsDirEntry = {
+  type: "file" | "dir";
+  name: string;
+  path: string;
+};
+
+/** Lists immediate children of a directory path (default branch). */
+export async function listDirectory(
+  ref: RepoRef,
+  dirPath: string,
+  branch: string,
+): Promise<ContentsDirEntry[]> {
+  const encoded = dirPath
+    .split("/")
+    .filter(Boolean)
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
+  const r = await ghFetch(
+    `/repos/${ref.owner}/${ref.repo}/contents/${encoded}?ref=${encodeURIComponent(branch)}`,
+  );
+  if (r.status === 404) return [];
+  if (!r.ok) {
+    throw new Error(`GitHub list directory failed (${r.status})`);
+  }
+  const j = (await r.json()) as unknown;
+  if (!Array.isArray(j)) {
+    throw new Error("GitHub contents: expected directory array");
+  }
+  const out: ContentsDirEntry[] = [];
+  for (const e of j) {
+    if (
+      typeof e === "object" &&
+      e !== null &&
+      "type" in e &&
+      (e as ContentsDirEntry).type === "file" &&
+      "name" in e &&
+      typeof (e as ContentsDirEntry).name === "string" &&
+      "path" in e &&
+      typeof (e as ContentsDirEntry).path === "string"
+    ) {
+      out.push(e as ContentsDirEntry);
+    }
+  }
+  return out;
+}
+
 export async function getBlobFile(
   ref: RepoRef,
   blobPath: string,

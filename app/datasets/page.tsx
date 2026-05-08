@@ -1,7 +1,7 @@
-import { DatasetList } from "@/components/dataset-list";
-import { getCatalogueIndex } from "@/lib/catalogue/load-index";
+import { DatasetBrowse } from "@/components/dataset-browse";
+import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 
-export default function DatasetsPage() {
-  const { datasets, generated_at: generatedAt } = getCatalogueIndex();
-  return <DatasetList datasets={datasets} generatedAt={generatedAt} />;
+export default async function DatasetsPage() {
+  const { datasets, generated_at: generatedAt } = await fetchCatalogueIndexLive();
+  return <DatasetBrowse datasets={datasets} generatedAt={generatedAt} />;
 }

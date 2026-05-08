@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 type CatalogueShellProps = {
   children: ReactNode;
   datasets?: DatasetCatalogueEntry[];
+  canEdit?: boolean;
   className?: string;
 };
 
@@ -36,6 +37,7 @@ function initials(label: string) {
 export function CatalogueShell({
   children,
   datasets = [],
+  canEdit = false,
   className,
 }: CatalogueShellProps) {
   const pathname = usePathname();
@@ -53,8 +55,8 @@ export function CatalogueShell({
   }
 
   function focusSearch() {
-    if (pathname !== "/datasets") {
-      router.push("/datasets#catalogue-search");
+    if (pathname !== "/datasets/search") {
+      router.push("/datasets/search#catalogue-search");
       return;
     }
 
@@ -89,7 +91,7 @@ export function CatalogueShell({
           >
             {!sidebarCollapsed ? (
               <Link
-                href="/datasets"
+                href="/datasets/search"
                 className="font-display text-[2.125rem] leading-none text-sidebar-foreground outline-none transition-[opacity] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring/35"
               >
                 Catalogue
@@ -111,11 +113,13 @@ export function CatalogueShell({
           <nav className="flex flex-col gap-1.5">
             <Link
               href="/datasets"
+              aria-current={pathname === "/datasets" ? "page" : undefined}
               aria-label={sidebarCollapsed ? "Datasets" : undefined}
               title={sidebarCollapsed ? "Datasets" : undefined}
               className={cn(
                 "flex h-11 items-center rounded-xl text-[length:var(--text-lg)] font-normal text-sidebar-foreground outline-none transition-[background-color,color] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35",
                 sidebarCollapsed ? "justify-center px-0" : "gap-3 px-2.5",
+                pathname === "/datasets" && "bg-muted",
               )}
             >
               <span className="flex size-8 items-center justify-center rounded-full bg-transparent">
@@ -126,12 +130,14 @@ export function CatalogueShell({
             <Button
               type="button"
               variant="ghost"
+              aria-current={pathname === "/datasets/search" ? "page" : undefined}
               aria-label={sidebarCollapsed ? "Search datasets" : undefined}
               title={sidebarCollapsed ? "Search" : undefined}
               onClick={focusSearch}
               className={cn(
                 "h-11 w-full rounded-xl text-[length:var(--text-lg)] font-normal text-sidebar-foreground hover:bg-muted hover:text-sidebar-foreground",
                 sidebarCollapsed ? "justify-center px-0" : "justify-start gap-3 px-2.5",
+                pathname === "/datasets/search" && "bg-muted",
               )}
             >
               <span className="flex size-8 items-center justify-center rounded-full bg-transparent">
@@ -142,26 +148,38 @@ export function CatalogueShell({
               </span>
               {!sidebarCollapsed ? <span className="truncate">Search</span> : null}
             </Button>
-            <div
-              className={cn(
-                "flex h-11 items-center rounded-xl text-[length:var(--text-lg)] text-muted-foreground/60",
-                sidebarCollapsed ? "justify-center px-0" : "gap-3 px-2.5",
-              )}
-              aria-disabled="true"
-              title={sidebarCollapsed ? "New dataset" : undefined}
-            >
-              <span className="flex size-8 items-center justify-center rounded-full">
-                <FilePlus2Icon className="size-6" aria-hidden />
-              </span>
-              {!sidebarCollapsed ? (
-                <>
+            {canEdit ? (
+              <Link
+                href="/datasets/new"
+                aria-label={sidebarCollapsed ? "New dataset" : undefined}
+                title={sidebarCollapsed ? "New dataset" : undefined}
+                className={cn(
+                  "flex h-11 items-center rounded-xl text-[length:var(--text-lg)] font-normal text-sidebar-foreground outline-none transition-[background-color,color] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35",
+                  sidebarCollapsed ? "justify-center px-0" : "gap-3 px-2.5",
+                )}
+              >
+                <span className="flex size-8 items-center justify-center rounded-full bg-transparent">
+                  <FilePlus2Icon className="size-6" aria-hidden />
+                </span>
+                {!sidebarCollapsed ? <span className="truncate">New dataset</span> : null}
+              </Link>
+            ) : (
+              <div
+                className={cn(
+                  "flex h-11 items-center rounded-xl text-[length:var(--text-lg)] text-muted-foreground/60",
+                  sidebarCollapsed ? "justify-center px-0" : "gap-3 px-2.5",
+                )}
+                aria-disabled="true"
+                title={sidebarCollapsed ? "New dataset (editors only)" : undefined}
+              >
+                <span className="flex size-8 items-center justify-center rounded-full">
+                  <FilePlus2Icon className="size-6" aria-hidden />
+                </span>
+                {!sidebarCollapsed ? (
                   <span className="truncate">New dataset</span>
-                  <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[length:var(--text-xs)] text-muted-foreground">
-                    Phase 6
-                  </span>
-                </>
-              ) : null}
-            </div>
+                ) : null}
+              </div>
+            )}
             <div
               className={cn(
                 "flex h-11 items-center rounded-xl text-[length:var(--text-lg)] text-muted-foreground/60",
@@ -239,7 +257,7 @@ export function CatalogueShell({
       </aside>
 
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 lg:hidden">
-        <Link href="/datasets" className="font-display text-[length:var(--text-xl)]">
+        <Link href="/datasets/search" className="font-display text-[length:var(--text-xl)]">
           Catalogue
         </Link>
         <Button

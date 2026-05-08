@@ -100,6 +100,41 @@ Sign-in is **GitHub only** (Supabase OAuth). Use the **dataset-registry** Supaba
 | Viewer `PUT` | **403** |
 | Editor `PUT` | **200** (with valid payload and `GITHUB_*`) |
 
+## Catalogue UI — add and edit (Phase 6)
+
+Editors (emails in **`CATALOGUE_EDITOR_EMAILS`**, and on **`CATALOGUE_ALLOWLIST_EMAILS`**) get:
+
+- Sidebar **New dataset** → **`/datasets/new`**
+- **Edit** on each dataset detail → **`/datasets/[id]/edit`**
+
+Forms use the same JSON Schema validation as the API ([`lib/catalogue/dataset-validator.ts`](lib/catalogue/dataset-validator.ts)); writes call `PUT /api/catalogue/datasets/:id` and optionally `PUT .../description` for Markdown. Commits are **direct to the default branch** (no PR for catalogue files). Viewers see no edit affordances and receive **403** from write APIs.
+
+After a save, **production** still depends on the GitHub commit landing on the default branch; **`generated/index.json`** is rebuilt in CI/build for repo hygiene and as a fallback. The app also **loads the live catalogue from GitHub** on each request when **`GITHUB_TOKEN`** and **`GITHUB_REPOSITORY`** are set, so list, search, and sidebar recents can show new ids without `git pull` or `generate:index`. Saves trigger **`router.refresh()`** so the shell’s recents update in the same session.
+
+### Routes (browse vs search)
+
+- **`/`** redirects to **`/datasets/search`** (composer and filters).
+- **`/datasets`** lists every entry A–Z for scanning (link to search at the top).
+- **`/datasets/search`** is the search-and-filter surface (**`DatasetList`**).
+
+Without **`GITHUB_*`** on the server, those pages use **`getCatalogueIndex()`** (the **`generated/index.json`** bundled at build time), same as local offline dev.
+
+### Detail URL 404 right after “Create”, or list missing the new row
+
+- **Writes go to GitHub**, not into your working tree. Until you **`git pull`**, you may not have **`datasets/<id>.json`** locally.
+- **Browse, search, and recents** prefer **live GitHub listing** when env is configured; otherwise they follow **`generated/index.json`** (**`pnpm run generate:index`** or **`pnpm run build`** refreshes that file).
+- **Detail and edit** (`/datasets/[id]`, `/datasets/[id]/edit`) also prefer the index, but **fall back to the catalogue GET API** (GitHub) when the index does not yet contain the id — so **“Open in catalogue”** should work while you stay logged in, even before pull/regenerate.
+- If detail still 404s: confirm **`GET /api/catalogue/datasets/<id>`** returns **200** (session + allowlist + GitHub env). A 404 from the API means the file is not on the **default** branch GitHub config uses.
+
+### GitHub Actions vs Vercel
+
+- **Actions** run **`pnpm run build`** on **`main`** (see [`.github/workflows/validate-datasets.yml`](.github/workflows/validate-datasets.yml)): install, **validate all `datasets/*.json`**, Next build. If this job is **red**, open the workflow log — common causes: **`id` ≠ filename stem**, schema errors, or **`pnpm install --frozen-lockfile`** failing after lockfile drift.
+- **Vercel** deploy is a **separate** pipeline: it can show “Ready” even when **Actions** failed on the same push. Treat the **Validate datasets** check as the source of truth for whether **`main`** is healthy; fix CI before relying on production.
+
+**Acceptance:** before calling v1 done, walk [plan.md §13 — Testing and acceptance](plan.md#13-testing-and-acceptance-v1) (login, allowlist, read/write auth, add/edit commits, index, CI).
+
+**Maintenance:** schema, forms, and API validation should stay in sync — see [plan.md §14](plan.md#14-maintenance-guide-for-future-phd-students). UI work must follow **shadcn** + [`.cursor/agents/claude-design.md`](.cursor/agents/claude-design.md) (see [plan.md §9](plan.md#9-frontend--stack-and-ui-rules)).
+
 ## Rules
 
 - **Seekly** apps are out of scope: do not deploy this repo to the `seekly` Vercel project or change Seekly env vars. The Supabase project **Seekly Auth0** was not modified; auth for this app uses **dataset-registry** only.
