@@ -24,14 +24,14 @@ export async function PUT(req: Request, ctx: RouteCtx) {
 
   try {
     const supabase = await createServerSupabase();
-    const { error } = await supabase.from("dataset_stars").upsert(
-      {
-        user_id: auth.user.id,
-        dataset_id: id,
-      },
-      { onConflict: "user_id,dataset_id" },
-    );
+    const { error } = await supabase.from("dataset_stars").insert({
+      user_id: auth.user.id,
+      dataset_id: id,
+    });
     if (error) {
+      if (error.code === "23505") {
+        return NextResponse.json({ starred: true });
+      }
       return NextResponse.json(
         { error: "could not star dataset" },
         { status: 502 },
