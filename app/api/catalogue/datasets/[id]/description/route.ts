@@ -4,9 +4,15 @@ import { NextResponse } from "next/server";
 
 import {
   assertCatalogueRead,
-  assertCatalogueWrite,
+  assertCatalogueMutation,
+  requireCatalogueUser,
 } from "@/lib/catalogue/access";
-import { assertDatasetSlug, catalogueMdPath } from "@/lib/catalogue/path";
+import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
+import {
+  assertDatasetSlug,
+  catalogueJsonPath,
+  catalogueMdPath,
+} from "@/lib/catalogue/path";
 import {
   defaultBranch,
   getBlobFile,
@@ -19,6 +25,17 @@ export const runtime = "nodejs";
 type RouteCtx = { params: Promise<{ id: string }> };
 
 const LIMIT = 512 * 1024;
+
+function parseDataset(text: string): DatasetCatalogueEntry | null {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (typeof (parsed as { id?: unknown }).id !== "string") return null;
+    return parsed as DatasetCatalogueEntry;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(req: Request, ctx: RouteCtx) {
   const denied = await assertCatalogueRead(req);
@@ -56,8 +73,8 @@ export async function GET(req: Request, ctx: RouteCtx) {
 }
 
 export async function PUT(req: Request, ctx: RouteCtx) {
-  const denied = await assertCatalogueWrite(req);
-  if (denied) return denied;
+  const auth = await requireCatalogueUser(req);
+  if (!auth.ok) return auth.response;
   const { id } = await ctx.params;
   if (!assertDatasetSlug(id)) {
     return NextResponse.json({ error: "invalid id slug" }, { status: 400 });
@@ -79,9 +96,24 @@ export async function PUT(req: Request, ctx: RouteCtx) {
   }
   const branch = defaultBranch();
   const path = catalogueMdPath(id);
+  const jsonPath = catalogueJsonPath(id);
   const b64 = Buffer.from(text, "utf8").toString("base64");
 
   try {
+    const datasetBlob = await getBlobFile(repo, jsonPath, branch);
+    if (!datasetBlob) {
+      return NextResponse.json({ error: "dataset not found" }, { status: 404 });
+    }
+    const dataset = parseDataset(datasetBlob.text);
+    if (!dataset) {
+      return NextResponse.json(
+        { error: "existing dataset JSON is malformed" },
+        { status: 409 },
+      );
+    }
+    const denied = await assertCatalogueMutation(req, dataset);
+    if (denied) return denied;
+
     const existing = await getBlobFile(repo, path, branch);
     const message = existing
       ? `catalogue: update dataset ${id} description`

@@ -147,3 +147,36 @@ export async function putBlobFile(
   }
   return (await r.json()) as PutResult;
 }
+
+export type DeleteResult = {
+  commit: { sha: string; html_url?: string };
+};
+
+export async function deleteBlobFile(
+  ref: RepoRef,
+  blobPath: string,
+  branch: string,
+  sha: string,
+  message: string,
+): Promise<DeleteResult> {
+  const encoded = blobPath
+    .split("/")
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
+  const r = await ghFetch(`/repos/${ref.owner}/${ref.repo}/contents/${encoded}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      sha,
+      branch,
+    }),
+  });
+  if (r.status === 409 || r.status === 422) {
+    throw new Error(`GitHub refused delete commit (${r.status})`);
+  }
+  if (!r.ok) {
+    throw new Error(`GitHub DELETE contents failed (${r.status})`);
+  }
+  return (await r.json()) as DeleteResult;
+}

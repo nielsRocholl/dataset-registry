@@ -10,27 +10,26 @@ export function parseEmailList(raw: string | undefined): Set<string> {
   );
 }
 
-/** Empty env list denies all (safest). */
-export function isAllowlistedEmail(email: string | null | undefined): boolean {
+export function isBootstrapAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
-  const set = parseEmailList(process.env.CATALOGUE_ALLOWLIST_EMAILS);
+  const set = parseEmailList(process.env.CATALOGUE_BOOTSTRAP_ADMIN_EMAILS);
   if (set.size === 0) return false;
   return set.has(email.trim().toLowerCase());
 }
 
-export function isEditorEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const set = parseEmailList(process.env.CATALOGUE_EDITOR_EMAILS);
-  if (set.size === 0) return false;
-  return set.has(email.trim().toLowerCase());
-}
-
+/** Prefer session email; GitHub OAuth often fills metadata or identities only. */
 export function primaryEmail(user: User): string | null {
-  return (
-    user.email?.toLowerCase().trim() ||
-    (typeof user.user_metadata?.email === "string"
-      ? user.user_metadata.email.toLowerCase().trim()
-      : null) ||
-    null
-  );
+  const direct = user.email?.toLowerCase().trim();
+  if (direct) return direct;
+  const meta = user.user_metadata;
+  if (typeof meta?.email === "string" && meta.email.trim()) {
+    return meta.email.toLowerCase().trim();
+  }
+  for (const id of user.identities ?? []) {
+    const raw = id.identity_data?.email;
+    if (typeof raw === "string" && raw.trim()) {
+      return raw.toLowerCase().trim();
+    }
+  }
+  return null;
 }

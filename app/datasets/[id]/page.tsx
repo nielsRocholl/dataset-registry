@@ -10,6 +10,8 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { DatasetDeleteButton } from "@/components/dataset-delete-button";
+import { DatasetStarButton } from "@/components/dataset-star-button";
 import {
   Card,
   CardContent,
@@ -17,9 +19,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { getCanEdit } from "@/lib/catalogue/editor-session";
+import {
+  getCanMutateDataset,
+  getCurrentCatalogueUser,
+} from "@/lib/catalogue/editor-session";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
+import { getStarredDatasetIds } from "@/lib/catalogue/stars";
 import { cn } from "@/lib/utils";
 
 export const dynamicParams = true;
@@ -67,7 +73,10 @@ export default async function DatasetDetailPage({
     notFound();
   }
 
-  const canEdit = await getCanEdit();
+  const user = await getCurrentCatalogueUser();
+  const canEdit = await getCanMutateDataset(dataset);
+  const starredDatasetIds = user ? await getStarredDatasetIds(user.id) : [];
+  const isStarred = starredDatasetIds.includes(dataset.id);
 
   return (
     <main className="flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12">
@@ -95,17 +104,29 @@ export default async function DatasetDetailPage({
                   </p>
                 </div>
               </div>
-              {canEdit ? (
-                <Link
-                  href={`/datasets/${dataset.id}/edit`}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "shrink-0 self-start sm:mt-1",
-                  )}
-                >
-                  Edit
-                </Link>
-              ) : null}
+              <div className="flex shrink-0 flex-wrap gap-2 self-start sm:mt-1">
+                {user ? (
+                  <DatasetStarButton
+                    datasetId={dataset.id}
+                    initialStarred={isStarred}
+                    label="Star"
+                  />
+                ) : null}
+                {canEdit ? (
+                  <Link
+                    href={`/datasets/${dataset.id}/edit`}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    Edit
+                  </Link>
+                ) : null}
+                {canEdit ? (
+                  <DatasetDeleteButton
+                    datasetId={dataset.id}
+                    datasetName={dataset.name}
+                  />
+                ) : null}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -113,6 +134,7 @@ export default async function DatasetDetailPage({
               <Badge variant="outline">{dataset.anatomy}</Badge>
               <Badge variant="outline">{dataset.task}</Badge>
               <Badge variant="outline">{dataset.access_level}</Badge>
+              <Badge variant="outline">Created by {dataset.created_by}</Badge>
               {dataset.status ? <Badge variant="secondary">{dataset.status}</Badge> : null}
             </div>
           </div>

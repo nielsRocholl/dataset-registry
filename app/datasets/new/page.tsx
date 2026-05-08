@@ -6,11 +6,11 @@ import {
 } from "lucide-react";
 
 import { DatasetEditorForm } from "@/components/dataset-editor-form";
-import { getCanEdit } from "@/lib/catalogue/editor-session";
+import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
 
 export default async function NewDatasetPage() {
-  const canEdit = await getCanEdit();
-  if (!canEdit) {
+  const user = await getCurrentCatalogueUser();
+  if (!user) {
     redirect("/unauthorized");
   }
 
@@ -37,8 +37,8 @@ export default async function NewDatasetPage() {
                 Register a dataset
               </h1>
               <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
-                Required fields match the catalogue schema. Saving commits JSON (and optional
-                Markdown) directly to the repository.
+                Add the minimum metadata researchers need to find, judge, and
+                request access to the dataset.
               </p>
             </div>
           </div>

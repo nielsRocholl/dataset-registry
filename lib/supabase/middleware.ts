@@ -1,11 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  isAllowlistedEmail,
-  primaryEmail,
-} from "@/lib/catalogue/allowlist";
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -60,15 +55,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
-    const email = primaryEmail(user);
-    if (!isAllowlistedEmail(email)) {
-      if (
-        path !== "/unauthorized" &&
-        !path.startsWith("/auth/")
-      ) {
-        return NextResponse.redirect(new URL("/unauthorized", request.url));
-      }
-    } else if (path === "/login") {
+    if (path === "/login") {
       const next = request.nextUrl.searchParams.get("next") || "/";
       const safe = next.startsWith("/") ? next : "/";
       return NextResponse.redirect(new URL(safe, request.url));

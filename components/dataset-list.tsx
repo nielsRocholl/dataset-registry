@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { DatasetStarButton } from "@/components/dataset-star-button";
 import {
   Field,
   FieldGroup,
@@ -39,6 +40,7 @@ const TYPING_WORDS = ["segmentation", "classification", "detection"] as const;
 type DatasetListProps = {
   datasets: DatasetCatalogueEntry[];
   generatedAt: string;
+  starredDatasetIds?: string[];
 };
 
 type SelectOption = {
@@ -141,7 +143,11 @@ function TypingDatasetTitle() {
   );
 }
 
-export function DatasetList({ datasets, generatedAt }: DatasetListProps) {
+export function DatasetList({
+  datasets,
+  generatedAt,
+  starredDatasetIds = [],
+}: DatasetListProps) {
   const [query, setQuery] = useState("");
   const [modality, setModality] = useState<string>(ALL);
   const [task, setTask] = useState<string>(ALL);
@@ -201,6 +207,10 @@ export function DatasetList({ datasets, generatedAt }: DatasetListProps) {
   }, [datasets, query, modality, task, access]);
 
   const generatedLabel = useMemo(() => formatGeneratedAt(generatedAt), [generatedAt]);
+  const starred = useMemo(
+    () => new Set(starredDatasetIds),
+    [starredDatasetIds],
+  );
 
   return (
     <main className="flex flex-1 flex-col px-4 py-10 sm:px-8 lg:px-12">
@@ -329,39 +339,48 @@ export function DatasetList({ datasets, generatedAt }: DatasetListProps) {
             <ul className="flex flex-col gap-2">
               {filtered.map((dataset) => (
                 <li key={dataset.id}>
-                  <Link
-                    href={`/datasets/${dataset.id}`}
+                  <div
                     className={cn(
-                      "group flex flex-col gap-3 rounded-2xl border border-transparent px-4 py-3 outline-none",
+                      "group relative rounded-2xl border border-transparent outline-none",
                       "transition-[background-color,border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)]",
                       "hover:-translate-y-px hover:border-border hover:bg-card hover:shadow-[var(--shadow-soft)]",
-                      "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30",
                     )}
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <DatabaseIcon className="size-4 shrink-0 text-brand" aria-hidden />
-                          <h2 className="truncate text-[length:var(--text-base)] font-medium text-foreground">
-                            {dataset.name}
-                          </h2>
+                    <Link
+                      href={`/datasets/${dataset.id}`}
+                      className="flex flex-col gap-3 rounded-2xl px-4 py-3 pr-12 outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <DatabaseIcon className="size-4 shrink-0 text-brand" aria-hidden />
+                            <h2 className="truncate text-[length:var(--text-base)] font-medium text-foreground">
+                              {dataset.name}
+                            </h2>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
+                            {dataset.short_description}
+                          </p>
                         </div>
-                        <p className="mt-1 line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
-                          {dataset.short_description}
-                        </p>
+                        <div className="flex shrink-0 flex-wrap gap-1.5">
+                          <Badge variant="secondary">{dataset.modality}</Badge>
+                          <Badge variant="outline">{dataset.task}</Badge>
+                          <Badge variant="outline">{dataset.access_level}</Badge>
+                          <Badge variant="outline">By {dataset.created_by}</Badge>
+                        </div>
                       </div>
-                      <div className="flex shrink-0 flex-wrap gap-1.5">
-                        <Badge variant="secondary">{dataset.modality}</Badge>
-                        <Badge variant="outline">{dataset.task}</Badge>
-                        <Badge variant="outline">{dataset.access_level}</Badge>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--text-xs)] text-muted-foreground">
+                        <span className="font-mono">{dataset.id}</span>
+                        <span>{dataset.anatomy}</span>
+                        <span>{scaleLabel(dataset)}</span>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--text-xs)] text-muted-foreground">
-                      <span className="font-mono">{dataset.id}</span>
-                      <span>{dataset.anatomy}</span>
-                      <span>{scaleLabel(dataset)}</span>
-                    </div>
-                  </Link>
+                    </Link>
+                    <DatasetStarButton
+                      datasetId={dataset.id}
+                      initialStarred={starred.has(dataset.id)}
+                      className="absolute right-2 top-2"
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

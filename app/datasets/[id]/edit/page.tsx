@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import { DatasetEditorForm } from "@/components/dataset-editor-form";
-import { getCanEdit } from "@/lib/catalogue/editor-session";
+import { getCanMutateDataset } from "@/lib/catalogue/editor-session";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
 
@@ -21,15 +21,14 @@ export default async function EditDatasetPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const canEdit = await getCanEdit();
-  if (!canEdit) {
-    redirect("/unauthorized");
-  }
-
   const { id } = await params;
   const initialDataset = await getDatasetEntryServer(id);
   if (!initialDataset) {
     notFound();
+  }
+  const canEdit = await getCanMutateDataset(initialDataset);
+  if (!canEdit) {
+    redirect("/unauthorized");
   }
 
   return (
@@ -55,7 +54,7 @@ export default async function EditDatasetPage({
                 {initialDataset.name}
               </h1>
               <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
-                Update metadata or long-form Markdown. Changes commit to the default branch.
+                Refine the catalogue metadata without changing the dataset id.
               </p>
             </div>
           </div>

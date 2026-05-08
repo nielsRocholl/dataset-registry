@@ -5,7 +5,7 @@ Internal dataset catalogue (Next.js on Vercel, Supabase Auth, GitHub as source o
 ## Environment
 
 1. Copy `.env.example` to `.env.local`.
-2. Open [Supabase](https://supabase.com/dashboard) → project **dataset-registry** → **Project Settings** → **API**: paste **Project URL** and the **anon** key into `NEXT_PUBLIC_*` vars. Add **service_role** only into `SUPABASE_SERVICE_ROLE_KEY` when server code needs it (keep off the client).
+2. Open [Supabase](https://supabase.com/dashboard) → project **dataset-registry** → **Project Settings** → **API**: paste **Project URL** and the **anon** key into `NEXT_PUBLIC_*` vars. Add **service_role** only into server-only `SUPABASE_SERVICE_ROLE_KEY`; the live app requires it for membership and admin operations.
 3. In [Vercel](https://vercel.com) → **this** project (not Seekly) → **Settings** → **Environment Variables**: add the same names for Production and Preview.
 
 ## Provisioning (Phase 1)
@@ -49,6 +49,7 @@ Server Route Handlers under **`/api/catalogue/...`** read and commit **`datasets
 | `GITHUB_DEFAULT_BRANCH` | Branch for GET/PUT; defaults to **`main`**. |
 | `CATALOGUE_E2E_BEARER` | Optional. **Ignored when `VERCEL_ENV=production`.** For local smoke only: same header is accepted on catalogue APIs without a session. Prefer **unset** on Vercel Production. |
 | `NEXT_PUBLIC_SUPABASE_*` | Required for **cookie session** auth: `getUser()` must succeed unless E2E bearer matches. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Required for profile bootstrap/admin role reads and cross-user star cleanup after dataset delete. |
 
 ### Fine-grained PAT (GitHub)
 
@@ -78,36 +79,50 @@ Sign-in is **GitHub only** (Supabase OAuth). Use the **dataset-registry** Supaba
 1. **GitHub OAuth app:** callback URL must match Supabase (typically `https://<project-ref>.supabase.co/auth/v1/callback`). Save Client ID and secret.
 2. **Supabase dashboard:** **Authentication → Providers → GitHub** — enable and paste credentials.
 3. **URL configuration:** **Site URL** = app origin (production or `http://localhost:3000`). **Redirect URLs** must include `http://localhost:3000/**`, `http://localhost:3000/auth/callback`, and production/preview origins with the same paths.
-4. **Env:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, plus allowlists (comma-separated, **lowercase** emails):
+4. **Env:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and optional bootstrap admins:
 
 | Variable | Purpose |
 |---------|---------|
-| `CATALOGUE_ALLOWLIST_EMAILS` | Emails that may use the app after GitHub sign-in. **Empty list denies everyone.** |
-| `CATALOGUE_EDITOR_EMAILS` | Subset that may **PUT** catalogue APIs. Must be on the allowlist. |
+| `CATALOGUE_BOOTSTRAP_ADMIN_EMAILS` | Emergency lowercase email list promoted to `admin` in Supabase membership/profile tables on first server request. After bootstrap, manage access from `/datasets/admin`. |
 
 5. **Vercel:** mirror the same variables for Production and Preview; redeploy after changes.
 
 ### Behaviour
 
-- **Middleware** refreshes the Supabase session and sends unauthenticated browser traffic to **`/login`** (with `?next=`). Signed-in users not on the allowlist go to **`/unauthorized`** (no protected page data).
-- **Route Handlers** under `/api/catalogue/...` enforce **read** (allowlist) and **write** (allowlist + editor) again; **401** without a valid session (unless non-production E2E bearer), **403** if allowlisted as viewer on **PUT** or not allowlisted for **GET**.
+- **Membership:** `public.catalogue_members` is the canonical access list. Members can view/create/star and manage their own datasets; admins can manage all datasets and members.
+- **Middleware** refreshes the Supabase session and sends unauthenticated browser traffic to **`/login`** (with `?next=`). Membership is enforced by server pages and Route Handlers.
+- **Route Handlers** under `/api/catalogue/...` enforce **read/create** (catalogue member) and **mutate** (dataset owner or admin); **401** without a valid session (unless non-production E2E bearer), **403** if not allowed for the attempted operation.
+
+### Stuck on “Not on the access list yet” after GitHub sign-in
+
+1. **`SUPABASE_SERVICE_ROLE_KEY`** must be set on the same environment (local `.env.local` and Vercel Production + Preview). RLS blocks the browser from reading `catalogue_members`; the server needs the **service_role** key to match your email to a row.
+2. In **Supabase → Table Editor → `catalogue_members`**, confirm a row exists for the exact address the app resolves (lowercase). The app also reads email from `user_metadata` and OAuth identities if `user.email` is empty—after a deploy with the code fix, that covers typical GitHub sign-ins.
+3. Optional: set **`CATALOGUE_BOOTSTRAP_ADMIN_EMAILS`** (comma-separated, lowercase) so the first server request can insert your row if it is missing.
 
 ### Quick checks
 
 | Check | Expect |
 |-------|--------|
 | Anonymous `GET /api/catalogue/...` | **401** |
-| Viewer `PUT` | **403** |
-| Editor `PUT` | **200** (with valid payload and `GITHUB_*`) |
+| Member create `PUT` for new id | **200** (with valid payload and `GITHUB_*`); server stamps ownership |
+| Non-owner member `PUT` existing id | **403** |
+| Owner/admin `PUT` existing id | **200** |
 
 ## Catalogue UI — add and edit (Phase 6)
 
-Editors (emails in **`CATALOGUE_EDITOR_EMAILS`**, and on **`CATALOGUE_ALLOWLIST_EMAILS`**) get:
+Catalogue members get:
 
 - Sidebar **New dataset** → **`/datasets/new`**
-- **Edit** on each dataset detail → **`/datasets/[id]/edit`**
+- **Starred** datasets in the sidebar and `/datasets/starred`
+- Account link → **`/datasets/mine`**
 
-Forms use the same JSON Schema validation as the API ([`lib/catalogue/dataset-validator.ts`](lib/catalogue/dataset-validator.ts)); writes call `PUT /api/catalogue/datasets/:id` and optionally `PUT .../description` for Markdown. Commits are **direct to the default branch** (no PR for catalogue files). Viewers see no edit affordances and receive **403** from write APIs.
+Dataset owners and admins also get:
+
+- **Edit** on owned/admin-manageable dataset detail → **`/datasets/[id]/edit`**
+- **Delete** on owned/admin-manageable dataset detail. Delete hard-removes `datasets/<id>.json` and optional `datasets/<id>.md` by GitHub commit.
+- Admins get **`/datasets/admin`** for adding, promoting, demoting, and revoking catalogue members without changing env vars.
+
+Forms use the same JSON Schema validation as the API ([`lib/catalogue/dataset-validator.ts`](lib/catalogue/dataset-validator.ts)); writes call `PUT /api/catalogue/datasets/:id` and optionally `PUT .../description` for Markdown. Commits are **direct to the default branch** (no PR for catalogue files). The browser never chooses ownership: the server stamps `created_by`, `created_by_user_id`, and `created_by_email` from the Supabase session on create. Existing ownerless datasets remain admin-only for edit/delete.
 
 After a save, **production** still depends on the GitHub commit landing on the default branch; **`generated/index.json`** is rebuilt in CI/build for repo hygiene and as a fallback. The app also **loads the live catalogue from GitHub** on each request when **`GITHUB_TOKEN`** and **`GITHUB_REPOSITORY`** are set, so list, search, and sidebar recents can show new ids without `git pull` or `generate:index`. Saves trigger **`router.refresh()`** so the shell’s recents update in the same session.
 
@@ -124,14 +139,14 @@ Without **`GITHUB_*`** on the server, those pages use **`getCatalogueIndex()`** 
 - **Writes go to GitHub**, not into your working tree. Until you **`git pull`**, you may not have **`datasets/<id>.json`** locally.
 - **Browse, search, and recents** prefer **live GitHub listing** when env is configured; otherwise they follow **`generated/index.json`** (**`pnpm run generate:index`** or **`pnpm run build`** refreshes that file).
 - **Detail and edit** (`/datasets/[id]`, `/datasets/[id]/edit`) also prefer the index, but **fall back to the catalogue GET API** (GitHub) when the index does not yet contain the id — so **“Open in catalogue”** should work while you stay logged in, even before pull/regenerate.
-- If detail still 404s: confirm **`GET /api/catalogue/datasets/<id>`** returns **200** (session + allowlist + GitHub env). A 404 from the API means the file is not on the **default** branch GitHub config uses.
+- If detail still 404s: confirm **`GET /api/catalogue/datasets/<id>`** returns **200** (session + catalogue membership + GitHub env). A 404 from the API means the file is not on the **default** branch GitHub config uses.
 
 ### GitHub Actions vs Vercel
 
 - **Actions** run **`pnpm run build`** on **`main`** (see [`.github/workflows/validate-datasets.yml`](.github/workflows/validate-datasets.yml)): install, **validate all `datasets/*.json`**, Next build. If this job is **red**, open the workflow log — common causes: **`id` ≠ filename stem**, schema errors, or **`pnpm install --frozen-lockfile`** failing after lockfile drift.
 - **Vercel** deploy is a **separate** pipeline: it can show “Ready” even when **Actions** failed on the same push. Treat the **Validate datasets** check as the source of truth for whether **`main`** is healthy; fix CI before relying on production.
 
-**Acceptance:** before calling v1 done, walk [plan.md §13 — Testing and acceptance](plan.md#13-testing-and-acceptance-v1) (login, allowlist, read/write auth, add/edit commits, index, CI).
+**Acceptance:** before calling v1 done, walk [plan.md §13 — Testing and acceptance](plan.md#13-testing-and-acceptance-v1) (login, membership, read/write auth, add/edit commits, index, CI).
 
 **Maintenance:** schema, forms, and API validation should stay in sync — see [plan.md §14](plan.md#14-maintenance-guide-for-future-phd-students). UI work must follow **shadcn** + [`.cursor/agents/claude-design.md`](.cursor/agents/claude-design.md) (see [plan.md §9](plan.md#9-frontend--stack-and-ui-rules)).
 

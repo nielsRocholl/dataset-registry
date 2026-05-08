@@ -88,7 +88,13 @@ Example: `Request access via the group data steward; cite project ID XYZ in the 
 
 ### `created_by`
 
-Example: `@niels.rocholl` or `https://orcid.org/0000-0002-2222-3333`
+Human-facing creator label. New entries are stamped by the app from the signed-in Supabase account.
+
+Example: `"Niels Rocholl"`
+
+### `created_by_user_id`, `created_by_email` (server-stamped)
+
+Ownership fields used for edit/delete permissions. Do not hand-edit unless an admin is repairing ownership.
 
 ### `created_at`, `updated_at`
 

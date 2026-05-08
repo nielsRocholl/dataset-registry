@@ -10,6 +10,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -74,7 +75,6 @@ const TEXT_REQUIRED = [
   "short_description",
   "internal_storage_path",
   "anatomy",
-  "created_by",
 ] as const;
 type RequiredTextField = (typeof TEXT_REQUIRED)[number];
 
@@ -93,7 +93,6 @@ function buildPayload(
     anatomy: string;
     task: Task;
     access_level: AccessLevel;
-    created_by: string;
     status: string;
     n_patients: string;
     n_studies: string;
@@ -118,13 +117,16 @@ function buildPayload(
     anatomy: values.anatomy.trim(),
     task: values.task,
     access_level: values.access_level,
-    created_by:
-      mode === "edit" && initial
-        ? initial.created_by
-        : values.created_by.trim(),
+    created_by: initial?.created_by ?? "Current user",
     created_at: mode === "edit" && initial ? initial.created_at : now,
     updated_at: now,
   };
+  if (initial?.created_by_user_id) {
+    o.created_by_user_id = initial.created_by_user_id;
+  }
+  if (initial?.created_by_email) {
+    o.created_by_email = initial.created_by_email;
+  }
   if (values.status && values.status !== NONE) {
     o.status = values.status as DatasetStatus;
   }
@@ -163,7 +165,6 @@ function fieldError(field: RequiredTextField, value: string, mode: "new" | "edit
     short_description: "Description",
     internal_storage_path: "Internal storage path",
     anatomy: "Anatomy",
-    created_by: "Created by",
   };
   if (!value.trim()) return `${labels[field]} is required.`;
   return null;
@@ -175,6 +176,26 @@ function Req() {
     <span className="ml-0.5 text-brand" aria-hidden>
       *
     </span>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card size="sm" className="rounded-2xl bg-card/80">
+      <CardHeader className="border-b border-border">
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-5">{children}</CardContent>
+    </Card>
   );
 }
 
@@ -200,9 +221,6 @@ export function DatasetEditorForm(props: EditorProps) {
   const [task, setTask] = useState<Task>(initial?.task ?? "segmentation");
   const [access_level, setAccessLevel] = useState<AccessLevel>(
     initial?.access_level ?? "internal",
-  );
-  const [created_by, setCreatedBy] = useState(
-    mode === "edit" ? (initial?.created_by ?? "") : "",
   );
   const [status, setStatus] = useState(initial?.status ?? NONE);
   const [n_patients, setNPatients] = useState(
@@ -242,7 +260,6 @@ export function DatasetEditorForm(props: EditorProps) {
     setAnatomy("");
     setTask("segmentation");
     setAccessLevel("internal");
-    setCreatedBy("");
     setStatus(NONE);
     setNPatients("");
     setNStudies("");
@@ -272,16 +289,14 @@ export function DatasetEditorForm(props: EditorProps) {
       short_description,
       internal_storage_path,
       anatomy,
-      created_by,
     }),
-    [id, name, short_description, internal_storage_path, anatomy, created_by],
+    [id, name, short_description, internal_storage_path, anatomy],
   );
 
   // Compute per-field errors only for touched fields
   const errors: Partial<Record<RequiredTextField, string>> = useMemo(() => {
     const result: Partial<Record<RequiredTextField, string>> = {};
     for (const f of TEXT_REQUIRED) {
-      if (f === "created_by" && mode === "edit") continue;
       if (!touched[f]) continue;
       const err = fieldError(f, fieldValues[f], mode);
       if (err) result[f] = err;
@@ -296,7 +311,6 @@ export function DatasetEditorForm(props: EditorProps) {
     let count = 0;
     for (const f of TEXT_REQUIRED) {
       if (f === "id" && mode === "edit") continue;
-      if (f === "created_by" && mode === "edit") continue;
       const err = fieldError(f, fieldValues[f], mode);
       if (err) count++;
     }
@@ -350,7 +364,6 @@ export function DatasetEditorForm(props: EditorProps) {
     // Check for any required field violations first
     const anyEmpty = TEXT_REQUIRED.some((f) => {
       if (f === "id" && mode === "edit") return false;
-      if (f === "created_by" && mode === "edit") return false;
       return !!fieldError(f, fieldValues[f], mode);
     });
 
@@ -390,7 +403,6 @@ export function DatasetEditorForm(props: EditorProps) {
       anatomy,
       task,
       access_level,
-      created_by,
       status,
       n_patients,
       n_studies,
@@ -473,80 +485,80 @@ export function DatasetEditorForm(props: EditorProps) {
     }
   }
 
+  const cancelHref =
+    mode === "edit" && lockedId ? `/datasets/${lockedId}` : "/datasets";
+  const submitLabel = pending
+    ? "Saving..."
+    : mode === "new"
+      ? "Create dataset"
+      : "Save changes";
+  const saveStatus = hasFieldErrors
+    ? "Fill in the highlighted fields before saving."
+    : emptyRequiredCount > 0
+      ? `${emptyRequiredCount} required ${emptyRequiredCount === 1 ? "field" : "fields"} left.`
+      : "Ready to save.";
+
   return (
     <>
       <form
-      ref={formRef}
-      onSubmit={(e) => void onSubmit(e)}
-      className="flex flex-col gap-5"
-    >
-      {/* API / network errors only — field errors appear inline */}
-      {apiError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not save</AlertTitle>
-          <AlertDescription>{apiError}</AlertDescription>
-        </Alert>
-      ) : null}
+        ref={formRef}
+        onSubmit={(e) => void onSubmit(e)}
+        className="flex flex-col gap-4"
+      >
+        {apiError ? (
+          <Alert variant="destructive">
+            <AlertTitle>Could not save</AlertTitle>
+            <AlertDescription>{apiError}</AlertDescription>
+          </Alert>
+        ) : null}
 
-      {/* ── Required fields ─────────────────────────────── */}
-      <Card size="sm">
-        <CardHeader className="border-b border-border">
-          <CardTitle>
-            Required fields
-            {emptyRequiredCount > 0 ? (
-              <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-[length:var(--text-xs)] font-normal text-destructive">
-                {emptyRequiredCount} missing
-              </span>
-            ) : null}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-5">
-          <FieldGroup className="gap-6">
-            {/* Id */}
-            {mode === "edit" ? (
-              <Field>
-                <FieldLabel htmlFor="dataset-id">
-                  Id
-                </FieldLabel>
-                <Input
-                  id="dataset-id"
-                  value={lockedId}
-                  readOnly
-                  disabled
-                  className="font-mono"
-                />
-                <FieldDescription>
-                  The id is permanent and cannot be changed after creation.
-                </FieldDescription>
-              </Field>
-            ) : (
-              <Field data-invalid={!!errors.id || undefined}>
-                <FieldLabel htmlFor="dataset-id">
-                  Id <Req />
-                </FieldLabel>
-                <Input
-                  id="dataset-id"
-                  value={id}
-                  onChange={(e) => setId(e.target.value)}
-                  onBlur={() => touch("id")}
-                  className="font-mono"
-                  autoComplete="off"
-                  placeholder="e.g. lidc-idri-2024"
-                  aria-invalid={!!errors.id}
-                  aria-describedby={errors.id ? "dataset-id-error" : undefined}
-                />
-                {errors.id ? (
-                  <FieldError id="dataset-id-error">{errors.id}</FieldError>
-                ) : (
+        <FormSection
+          title="Identity"
+          description="Name the dataset and define the stable catalogue id."
+        >
+          <FieldGroup className="gap-5">
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              {mode === "edit" ? (
+                <Field>
+                  <FieldLabel htmlFor="dataset-id">Id</FieldLabel>
+                  <Input
+                    id="dataset-id"
+                    value={lockedId}
+                    readOnly
+                    disabled
+                    className="font-mono"
+                  />
                   <FieldDescription>
-                    Lowercase letters, digits, hyphens — matches the JSON
-                    filename.
+                    Permanent after creation.
                   </FieldDescription>
-                )}
-              </Field>
-            )}
+                </Field>
+              ) : (
+                <Field data-invalid={!!errors.id || undefined}>
+                  <FieldLabel htmlFor="dataset-id">
+                    Id <Req />
+                  </FieldLabel>
+                  <Input
+                    id="dataset-id"
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
+                    onBlur={() => touch("id")}
+                    className="font-mono"
+                    autoComplete="off"
+                    placeholder="e.g. lidc-idri-2024"
+                    aria-invalid={!!errors.id}
+                    aria-describedby={errors.id ? "dataset-id-error" : undefined}
+                  />
+                  {errors.id ? (
+                    <FieldError id="dataset-id-error">{errors.id}</FieldError>
+                  ) : (
+                    <FieldDescription>
+                      Lowercase letters, digits, and hyphens.
+                    </FieldDescription>
+                  )}
+                </Field>
+              )}
+            </FieldGroup>
 
-            {/* Name */}
             <Field data-invalid={!!errors.name || undefined}>
               <FieldLabel htmlFor="dataset-name">
                 Name <Req />
@@ -564,35 +576,116 @@ export function DatasetEditorForm(props: EditorProps) {
                 <FieldError id="dataset-name-error">{errors.name}</FieldError>
               ) : null}
             </Field>
+          </FieldGroup>
+        </FormSection>
 
-            {/* Description (JSON field: short_description) */}
-            <Field data-invalid={!!errors.short_description || undefined}>
-              <FieldLabel htmlFor="dataset-desc">
-                Description <Req />
+        <FormSection
+          title="Classification"
+          description="Keep the tags short and predictable so the catalogue stays scannable."
+        >
+          <FieldGroup className="grid gap-4 sm:grid-cols-2">
+            <Field>
+              <FieldLabel>
+                Modality <Req />
               </FieldLabel>
-              <Textarea
-                id="dataset-desc"
-                value={short_description}
-                onChange={(e) => setShortDescription(e.target.value)}
-                onBlur={() => touch("short_description")}
-                rows={4}
-                placeholder="What the dataset is, what it contains, and typical uses — as long as needed (up to about 2000 characters)."
-                aria-invalid={!!errors.short_description}
+              <Select
+                items={modalityItems}
+                value={modality}
+                onValueChange={(val) =>
+                  setModality((val ?? modality) as Modality)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {modalityItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel>
+                Task <Req />
+              </FieldLabel>
+              <Select
+                items={taskItems}
+                value={task}
+                onValueChange={(val) => setTask((val ?? task) as Task)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {taskItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field data-invalid={!!errors.anatomy || undefined}>
+              <FieldLabel htmlFor="dataset-anatomy">
+                Anatomy <Req />
+              </FieldLabel>
+              <Input
+                id="dataset-anatomy"
+                value={anatomy}
+                onChange={(e) => setAnatomy(e.target.value)}
+                onBlur={() => touch("anatomy")}
+                placeholder="e.g. lung, liver, brain"
+                aria-invalid={!!errors.anatomy}
                 aria-describedby={
-                  errors.short_description ? "dataset-desc-error" : undefined
+                  errors.anatomy ? "dataset-anatomy-error" : undefined
                 }
               />
-              {errors.short_description ? (
-                <FieldError id="dataset-desc-error">
-                  {errors.short_description}
+              {errors.anatomy ? (
+                <FieldError id="dataset-anatomy-error">
+                  {errors.anatomy}
                 </FieldError>
               ) : null}
             </Field>
 
-            {/* Internal storage path */}
-            <Field
-              data-invalid={!!errors.internal_storage_path || undefined}
-            >
+            <Field>
+              <FieldLabel>Status</FieldLabel>
+              <Select
+                items={statusItems}
+                value={status}
+                onValueChange={(val) => setStatus(val ?? NONE)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {statusItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGroup>
+        </FormSection>
+
+        <FormSection
+          title="Storage and access"
+          description="Record where the data lives and who can use it."
+        >
+          <FieldGroup className="gap-5">
+            <Field data-invalid={!!errors.internal_storage_path || undefined}>
               <FieldLabel htmlFor="dataset-path">
                 Internal storage path <Req />
               </FieldLabel>
@@ -616,229 +709,97 @@ export function DatasetEditorForm(props: EditorProps) {
                 </FieldError>
               ) : (
                 <FieldDescription id="dataset-path-desc">
-                  Canonical path on the group storage server. See{" "}
-                  <code className="font-mono text-xs">
-                    docs/metadata_guidelines.md
-                  </code>
-                  .
+                  Canonical path on the group storage server.
                 </FieldDescription>
               )}
             </Field>
 
-            {/* Modality — always has a value, no empty state */}
-            <Field>
-              <FieldLabel>
-                Modality <Req />
-              </FieldLabel>
-              <Select
-                items={modalityItems}
-                value={modality}
-                onValueChange={(val) =>
-                  setModality((val ?? modality) as Modality)
-                }
-              >
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {modalityItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            {/* Anatomy */}
-            <Field data-invalid={!!errors.anatomy || undefined}>
-              <FieldLabel htmlFor="dataset-anatomy">
-                Anatomy <Req />
-              </FieldLabel>
-              <Input
-                id="dataset-anatomy"
-                value={anatomy}
-                onChange={(e) => setAnatomy(e.target.value)}
-                onBlur={() => touch("anatomy")}
-                placeholder="e.g. lung, liver, brain, whole-body"
-                aria-invalid={!!errors.anatomy}
-                aria-describedby={
-                  errors.anatomy ? "dataset-anatomy-error" : undefined
-                }
-              />
-              {errors.anatomy ? (
-                <FieldError id="dataset-anatomy-error">
-                  {errors.anatomy}
-                </FieldError>
-              ) : null}
-            </Field>
-
-            {/* Task */}
-            <Field>
-              <FieldLabel>
-                Task <Req />
-              </FieldLabel>
-              <Select
-                items={taskItems}
-                value={task}
-                onValueChange={(val) => setTask((val ?? task) as Task)}
-              >
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {taskItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            {/* Access level */}
-            <Field>
-              <FieldLabel>
-                Access level <Req />
-              </FieldLabel>
-              <Select
-                items={accessItems}
-                value={access_level}
-                onValueChange={(val) =>
-                  setAccessLevel((val ?? access_level) as AccessLevel)
-                }
-              >
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {accessItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <FieldDescription>
-                <span className="font-medium">internal</span> — visible only
-                within the group.{" "}
-                <span className="font-medium">restricted</span> — requires
-                explicit approval.
-              </FieldDescription>
-            </Field>
-
-            {/* Created by — new mode only */}
-            {mode === "new" ? (
-              <Field data-invalid={!!errors.created_by || undefined}>
-                <FieldLabel htmlFor="dataset-created-by">
-                  Created by <Req />
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel>
+                  Access level <Req />
                 </FieldLabel>
-                <Input
-                  id="dataset-created-by"
-                  value={created_by}
-                  onChange={(e) => setCreatedBy(e.target.value)}
-                  onBlur={() => touch("created_by")}
-                  placeholder="e.g. j.smith or 0000-0001-2345-6789"
-                  aria-invalid={!!errors.created_by}
-                  aria-describedby={
-                    errors.created_by
-                      ? "created-by-error"
-                      : "created-by-desc"
+                <Select
+                  items={accessItems}
+                  value={access_level}
+                  onValueChange={(val) =>
+                    setAccessLevel((val ?? access_level) as AccessLevel)
                   }
-                />
-                {errors.created_by ? (
-                  <FieldError id="created-by-error">
-                    {errors.created_by}
-                  </FieldError>
-                ) : (
-                  <FieldDescription id="created-by-desc">
-                    Handle, email fragment, or ORCID per group convention.
-                  </FieldDescription>
-                )}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {accessItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </Field>
-            ) : null}
-          </FieldGroup>
-        </CardContent>
-      </Card>
 
-      {/* ── Optional fields ──────────────────────────────── */}
-      <Card size="sm">
-        <CardHeader className="border-b border-border">
-          <CardTitle>
-            Optional details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-5">
-          <FieldGroup className="gap-6">
-            {/* Status */}
+              <Field>
+                <FieldLabel htmlFor="license">License</FieldLabel>
+                <Input
+                  id="license"
+                  value={license}
+                  onChange={(e) => setLicense(e.target.value)}
+                  placeholder="e.g. CC-BY-4.0 or internal"
+                />
+              </Field>
+            </FieldGroup>
+
             <Field>
-              <FieldLabel>Status</FieldLabel>
-              <Select
-                items={statusItems}
-                value={status}
-                onValueChange={(val) => setStatus(val ?? NONE)}
-              >
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {statusItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <FieldLabel htmlFor="access-notes">Access notes</FieldLabel>
+              <Textarea
+                id="access-notes"
+                value={access_notes}
+                onChange={(e) => setAccessNotes(e.target.value)}
+                rows={3}
+                placeholder="Approval route, caveats, request forms, or usage notes."
+              />
             </Field>
+          </FieldGroup>
+        </FormSection>
 
-            {/* Scale counts */}
-            <fieldset className="flex flex-col gap-2">
-              <legend className="text-[length:var(--text-sm)] font-medium text-muted-foreground">
-                Scale
-              </legend>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field>
-                  <FieldLabel htmlFor="n-patients">Patients</FieldLabel>
-                  <Input
-                    id="n-patients"
-                    inputMode="numeric"
-                    value={n_patients}
-                    onChange={(e) => setNPatients(e.target.value)}
-                    placeholder="0"
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="n-studies">Studies</FieldLabel>
-                  <Input
-                    id="n-studies"
-                    inputMode="numeric"
-                    value={n_studies}
-                    onChange={(e) => setNStudies(e.target.value)}
-                    placeholder="0"
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="n-images">Images</FieldLabel>
-                  <Input
-                    id="n-images"
-                    inputMode="numeric"
-                    value={n_images}
-                    onChange={(e) => setNImages(e.target.value)}
-                    placeholder="0"
-                  />
-                </Field>
-              </div>
-            </fieldset>
-
-            {/* Dimensionality */}
+        <FormSection
+          title="Scale"
+          description="Optional counts help researchers judge fit quickly."
+        >
+          <FieldGroup className="grid gap-4 sm:grid-cols-4">
+            <Field>
+              <FieldLabel htmlFor="n-patients">Patients</FieldLabel>
+              <Input
+                id="n-patients"
+                inputMode="numeric"
+                value={n_patients}
+                onChange={(e) => setNPatients(e.target.value)}
+                placeholder="0"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="n-studies">Studies</FieldLabel>
+              <Input
+                id="n-studies"
+                inputMode="numeric"
+                value={n_studies}
+                onChange={(e) => setNStudies(e.target.value)}
+                placeholder="0"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="n-images">Images</FieldLabel>
+              <Input
+                id="n-images"
+                inputMode="numeric"
+                value={n_images}
+                onChange={(e) => setNImages(e.target.value)}
+                placeholder="0"
+              />
+            </Field>
             <Field>
               <FieldLabel>Dimensionality</FieldLabel>
               <Select
@@ -846,7 +807,7 @@ export function DatasetEditorForm(props: EditorProps) {
                 value={dimensionality}
                 onValueChange={(val) => setDimensionality(val ?? NONE)}
               >
-                <SelectTrigger className="w-full max-w-xs">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -860,32 +821,37 @@ export function DatasetEditorForm(props: EditorProps) {
                 </SelectContent>
               </Select>
             </Field>
+          </FieldGroup>
+        </FormSection>
 
-            {/* License */}
-            <Field>
-              <FieldLabel htmlFor="license">License</FieldLabel>
-              <Input
-                id="license"
-                value={license}
-                onChange={(e) => setLicense(e.target.value)}
-                placeholder="e.g. CC-BY-4.0, TCIA, or proprietary"
-                className="max-w-sm"
-              />
-            </Field>
-
-            {/* Access notes */}
-            <Field>
-              <FieldLabel htmlFor="access-notes">Access notes</FieldLabel>
+        <FormSection
+          title="Description"
+          description="Use a concise catalogue summary first; add Markdown only when useful."
+        >
+          <FieldGroup className="gap-5">
+            <Field data-invalid={!!errors.short_description || undefined}>
+              <FieldLabel htmlFor="dataset-desc">
+                Catalogue summary <Req />
+              </FieldLabel>
               <Textarea
-                id="access-notes"
-                value={access_notes}
-                onChange={(e) => setAccessNotes(e.target.value)}
-                rows={3}
-                placeholder="How to obtain access, any caveats, links to request forms, etc."
+                id="dataset-desc"
+                value={short_description}
+                onChange={(e) => setShortDescription(e.target.value)}
+                onBlur={() => touch("short_description")}
+                rows={4}
+                placeholder="What the dataset contains, why it exists, and typical uses."
+                aria-invalid={!!errors.short_description}
+                aria-describedby={
+                  errors.short_description ? "dataset-desc-error" : undefined
+                }
               />
+              {errors.short_description ? (
+                <FieldError id="dataset-desc-error">
+                  {errors.short_description}
+                </FieldError>
+              ) : null}
             </Field>
 
-            {/* Long description (Markdown) */}
             <Field>
               <FieldLabel htmlFor="long-md">
                 Long description (Markdown)
@@ -896,7 +862,7 @@ export function DatasetEditorForm(props: EditorProps) {
                 onChange={(e) => setMarkdown(e.target.value)}
                 rows={8}
                 className="font-mono text-sm"
-                placeholder="# Dataset overview&#10;&#10;Longer free-form notes, preprocessing steps, known issues, etc."
+                placeholder="# Dataset overview&#10;&#10;Longer notes, preprocessing steps, known issues, or references."
               />
               <FieldDescription>
                 Stored as{" "}
@@ -907,46 +873,34 @@ export function DatasetEditorForm(props: EditorProps) {
               </FieldDescription>
             </Field>
           </FieldGroup>
-        </CardContent>
-      </Card>
+        </FormSection>
 
-      {/* ── Actions ──────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 pb-2">
-        <Button
-          type="submit"
-          disabled={pending}
-          aria-disabled={pending}
-        >
-          {pending
-            ? "Saving…"
-            : mode === "new"
-              ? "Create dataset"
-              : "Save changes"}
-        </Button>
-        <Link
-          href={
-            mode === "edit" && lockedId
-              ? `/datasets/${lockedId}`
-              : "/datasets/search"
-          }
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            pending && "pointer-events-none opacity-55",
-          )}
-        >
-          Cancel
-        </Link>
-        {hasFieldErrors && !pending ? (
-          <p className="text-[length:var(--text-xs)] text-destructive" role="status">
-            Fill in the highlighted fields above before saving.
+        <div className="sticky bottom-3 flex flex-col gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
+          <p
+            className={cn(
+              "text-[length:var(--text-xs)]",
+              hasFieldErrors ? "text-destructive" : "text-muted-foreground",
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            {pending ? "Saving dataset..." : saveStatus}
           </p>
-        ) : emptyRequiredCount > 0 && !pending ? (
-          <p className="text-[length:var(--text-xs)] text-muted-foreground" role="status">
-            {emptyRequiredCount} required{" "}
-            {emptyRequiredCount === 1 ? "field" : "fields"} left.
-          </p>
-        ) : null}
-      </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={cancelHref}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                pending && "pointer-events-none opacity-55",
+              )}
+            >
+              Cancel
+            </Link>
+            <Button type="submit" disabled={pending} aria-disabled={pending}>
+              {submitLabel}
+            </Button>
+          </div>
+        </div>
       </form>
 
       <Dialog
@@ -980,17 +934,8 @@ export function DatasetEditorForm(props: EditorProps) {
                     </span>
                   ) : null}
                   <span className={successModal?.partialNote ? "mt-3 block" : "block"}>
-                    Committed to the default branch. With{" "}
-                    <code className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[length:var(--text-xs)]">
-                      GITHUB_TOKEN
-                    </code>{" "}
-                    and{" "}
-                    <code className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[length:var(--text-xs)]">
-                      GITHUB_REPOSITORY
-                    </code>
-                    , browse and search load from GitHub each visit; without them
-                    the app uses the last built index. This page was refreshed so
-                    recents can update.
+                    Saved to the catalogue. Open the entry to review the
+                    current metadata.
                   </span>
                 </DialogDescription>
               </DialogHeader>

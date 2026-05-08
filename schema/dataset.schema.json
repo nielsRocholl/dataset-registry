@@ -101,6 +101,18 @@
       "maxLength": 256,
       "description": "Group member id, email handle, or ORCID URI per local convention."
     },
+    "created_by_user_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Supabase Auth user id of the creator, stamped by the server for ownership checks."
+    },
+    "created_by_email": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 320,
+      "description": "Verified Supabase account email of the creator, stamped by the server."
+    },
     "created_at": {
       "type": "string",
       "format": "date-time"

@@ -33,6 +33,8 @@ export type DatasetCatalogueEntry = {
   task: Task;
   access_level: AccessLevel;
   created_by: string;
+  created_by_user_id?: string;
+  created_by_email?: string;
   created_at: string;
   updated_at: string;
   status?: DatasetStatus;
