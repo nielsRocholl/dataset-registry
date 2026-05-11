@@ -6,7 +6,10 @@ import {
 } from "lucide-react";
 
 import { DatasetEditorForm } from "@/components/dataset-editor-form";
-import { getCanMutateDataset } from "@/lib/catalogue/editor-session";
+import {
+  getCanMutateDataset,
+  getCurrentCatalogueUser,
+} from "@/lib/catalogue/editor-session";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
 
@@ -22,7 +25,10 @@ export default async function EditDatasetPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const initialDataset = await getDatasetEntryServer(id);
+  const [initialDataset] = await Promise.all([
+    getDatasetEntryServer(id),
+    getCurrentCatalogueUser(),
+  ]);
   if (!initialDataset) {
     notFound();
   }

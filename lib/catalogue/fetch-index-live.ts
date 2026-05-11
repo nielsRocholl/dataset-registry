@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 import type { CatalogueIndex, DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import { getCatalogueIndex } from "@/lib/catalogue/load-index";
 import { assertDatasetSlug, catalogueJsonPath } from "@/lib/catalogue/path";
@@ -33,15 +35,7 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
   return raw as unknown as DatasetCatalogueEntry;
 }
 
-/**
- * Build catalogue index from GitHub `datasets/*.json`. Falls back to
- * `generated/index.json` when env is missing or GitHub errors.
- */
-export async function fetchCatalogueIndexLive(): Promise<CatalogueIndex> {
-  if (!process.env.GITHUB_TOKEN?.trim() || !process.env.GITHUB_REPOSITORY?.trim()) {
-    return getCatalogueIndex();
-  }
-
+async function fetchCatalogueIndexFromGitHub(): Promise<CatalogueIndex> {
   try {
     const repo = parseRepository();
     const branch = defaultBranch();
@@ -77,4 +71,22 @@ export async function fetchCatalogueIndexLive(): Promise<CatalogueIndex> {
   } catch {
     return getCatalogueIndex();
   }
+}
+
+const fetchCatalogueIndexFromGitHubCached = unstable_cache(
+  fetchCatalogueIndexFromGitHub,
+  ["catalogue-index-live"],
+  { revalidate: 30 },
+);
+
+/**
+ * Build catalogue index from GitHub `datasets/*.json`. Falls back to
+ * `generated/index.json` when env is missing or GitHub errors.
+ * GitHub-backed results are cached briefly to avoid refetching on every navigation.
+ */
+export async function fetchCatalogueIndexLive(): Promise<CatalogueIndex> {
+  if (!process.env.GITHUB_TOKEN?.trim() || !process.env.GITHUB_REPOSITORY?.trim()) {
+    return getCatalogueIndex();
+  }
+  return fetchCatalogueIndexFromGitHubCached();
 }

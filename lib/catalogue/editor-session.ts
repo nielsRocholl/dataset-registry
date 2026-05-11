@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { canMutateDataset, ensureCatalogueUser } from "@/lib/catalogue/user-profile";
 import type {
   CatalogueUser,
@@ -7,7 +9,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 
 export type { CatalogueUser } from "@/lib/catalogue/user-profile";
 
-export async function getCurrentCatalogueUser(): Promise<CatalogueUser | null> {
+export const getCurrentCatalogueUser = cache(async (): Promise<CatalogueUser | null> => {
   try {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase.auth.getUser();
@@ -19,7 +21,7 @@ export async function getCurrentCatalogueUser(): Promise<CatalogueUser | null> {
     }
     return null;
   }
-}
+});
 
 export async function getCanCreate(): Promise<boolean> {
   return Boolean(await getCurrentCatalogueUser());

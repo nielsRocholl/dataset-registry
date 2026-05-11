@@ -68,14 +68,18 @@ export default async function DatasetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const dataset = await getDatasetEntryServer(id);
+  const [dataset, user] = await Promise.all([
+    getDatasetEntryServer(id),
+    getCurrentCatalogueUser(),
+  ]);
   if (!dataset) {
     notFound();
   }
 
-  const user = await getCurrentCatalogueUser();
-  const canEdit = await getCanMutateDataset(dataset);
-  const starredDatasetIds = user ? await getStarredDatasetIds(user.id) : [];
+  const [canEdit, starredDatasetIds] = await Promise.all([
+    getCanMutateDataset(dataset),
+    user ? getStarredDatasetIds(user.id) : Promise.resolve([]),
+  ]);
   const isStarred = starredDatasetIds.includes(dataset.id);
 
   return (

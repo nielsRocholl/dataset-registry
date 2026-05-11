@@ -11,11 +11,14 @@ export default async function MyDatasetsPage() {
     redirect("/unauthorized");
   }
 
-  const { datasets, generated_at: generatedAt } = await fetchCatalogueIndexLive();
+  const [{ datasets, generated_at: generatedAt }, starredDatasetIds] =
+    await Promise.all([
+      fetchCatalogueIndexLive(),
+      getStarredDatasetIds(user.id),
+    ]);
   const mine = datasets.filter(
     (dataset) => dataset.created_by_user_id === user.id,
   );
-  const starredDatasetIds = await getStarredDatasetIds(user.id);
 
   return (
     <DatasetBrowse

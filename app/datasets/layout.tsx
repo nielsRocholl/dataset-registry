@@ -16,8 +16,10 @@ export default async function DatasetsLayout({
     redirect("/unauthorized");
   }
 
-  const { datasets } = await fetchCatalogueIndexLive();
-  const starredDatasetIds = user ? await getStarredDatasetIds(user.id) : [];
+  const [{ datasets }, starredDatasetIds] = await Promise.all([
+    fetchCatalogueIndexLive(),
+    getStarredDatasetIds(user.id),
+  ]);
   const starredDatasetIdSet = new Set(starredDatasetIds);
   const starredDatasets = datasets.filter((dataset) =>
     starredDatasetIdSet.has(dataset.id),

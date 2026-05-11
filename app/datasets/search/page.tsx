@@ -4,8 +4,10 @@ import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
 
 export default async function DatasetsSearchPage() {
-  const { datasets, generated_at: generatedAt } = await fetchCatalogueIndexLive();
-  const user = await getCurrentCatalogueUser();
+  const [{ datasets, generated_at: generatedAt }, user] = await Promise.all([
+    fetchCatalogueIndexLive(),
+    getCurrentCatalogueUser(),
+  ]);
   const starredDatasetIds = user ? await getStarredDatasetIds(user.id) : [];
   return (
     <DatasetList

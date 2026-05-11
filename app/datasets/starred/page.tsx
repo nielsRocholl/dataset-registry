@@ -11,8 +11,11 @@ export default async function StarredDatasetsPage() {
     redirect("/unauthorized");
   }
 
-  const { datasets, generated_at: generatedAt } = await fetchCatalogueIndexLive();
-  const starredDatasetIds = await getStarredDatasetIds(user.id);
+  const [{ datasets, generated_at: generatedAt }, starredDatasetIds] =
+    await Promise.all([
+      fetchCatalogueIndexLive(),
+      getStarredDatasetIds(user.id),
+    ]);
   const starredSet = new Set(starredDatasetIds);
   const starredDatasets = datasets.filter((dataset) => starredSet.has(dataset.id));
 
