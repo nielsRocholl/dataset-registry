@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  AsteriskIcon,
-  ChevronLeftIcon,
-} from "lucide-react";
+import { ChevronLeftIcon } from "lucide-react";
 
+import { DatasetEditorPageHeader } from "@/components/dataset-editor-page-header";
 import { DatasetEditorForm } from "@/components/dataset-editor-form";
+import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
 
 export default async function NewDatasetPage() {
-  const user = await getCurrentCatalogueUser();
+  const [user, classificationVocabulary] = await Promise.all([
+    getCurrentCatalogueUser(),
+    loadClassificationVocabularyLive(),
+  ]);
   if (!user) {
     redirect("/unauthorized");
   }
@@ -28,23 +30,16 @@ export default async function NewDatasetPage() {
           Back to datasets
         </Link>
 
-        <header className="rounded-3xl border border-border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-7 sm:py-7">
-          <div className="flex items-start gap-4">
-            <AsteriskIcon className="mt-1 size-9 shrink-0 text-brand" aria-hidden />
-            <div className="min-w-0">
-              <p className="ui-kicker">New entry</p>
-              <h1 className="ui-title mt-2 text-[length:var(--text-3xl)]">
-                Register a dataset
-              </h1>
-              <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
-                Add the minimum metadata researchers need to find, judge, and
-                request access to the dataset.
-              </p>
-            </div>
-          </div>
-        </header>
+        <DatasetEditorPageHeader
+          kicker="New entry"
+          title="Register a dataset"
+          subtitle="Add the minimum metadata researchers need to find, judge, and request access to the dataset."
+        />
 
-        <DatasetEditorForm mode="new" />
+        <DatasetEditorForm
+          mode="new"
+          classificationVocabulary={classificationVocabulary}
+        />
       </section>
     </main>
   );

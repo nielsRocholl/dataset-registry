@@ -11,6 +11,7 @@ import {
   formatStableJson,
   validateDatasetPayload,
 } from "@/lib/catalogue/dataset-validator";
+import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
 import { clearStarsForDataset } from "@/lib/catalogue/stars";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import {
@@ -143,8 +144,26 @@ export async function PUT(req: Request, ctx: RouteCtx) {
       updated_at: now,
     };
 
-    const stampedValidation = validateDatasetPayload(stamped, id);
+    let vocabulary;
+    try {
+      vocabulary = await loadClassificationVocabularyLive();
+    } catch {
+      return NextResponse.json(
+        { error: "could not load classification vocabulary" },
+        { status: 503 },
+      );
+    }
+    const stampedValidation = validateDatasetPayload(stamped, id, vocabulary);
     if (!stampedValidation.ok) {
+      if ("vocabularyErrors" in stampedValidation) {
+        return NextResponse.json(
+          {
+            error: "classification vocabulary mismatch",
+            details: stampedValidation.vocabularyErrors,
+          },
+          { status: 422 },
+        );
+      }
       return NextResponse.json(
         {
           error: "schema validation failed after ownership stamping",

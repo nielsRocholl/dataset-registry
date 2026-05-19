@@ -3,17 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AsteriskIcon } from "lucide-react";
+import { AsteriskIcon, FolderIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -37,19 +30,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  ACCESS_LEVELS,
-  DIMENSIONALITIES,
-  MODALITIES,
-  NONE,
-  STATUSES,
-  TASKS,
-} from "@/lib/catalogue/dataset-form-options";
+import { NONE } from "@/lib/catalogue/dataset-form-options";
+import type { ClassificationVocabularyDoc } from "@/lib/catalogue/classification-vocabulary";
+import { normalizeAnatomyTag } from "@/lib/catalogue/filters";
+import { CopyClipboardButton } from "@/components/copy-clipboard-button";
+import { DATASET_EDITOR_FORM_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
 import { validateDatasetPayload } from "@/lib/catalogue/dataset-validator";
 import { assertDatasetSlug } from "@/lib/catalogue/path";
 import type {
   AccessLevel,
+  AnnotationType,
+  BodyRegion,
   DatasetCatalogueEntry,
   DatasetStatus,
   Dimensionality,
@@ -65,8 +58,12 @@ type SuccessModalState = {
 };
 
 type EditorProps =
-  | { mode: "new" }
-  | { mode: "edit"; initialDataset: DatasetCatalogueEntry };
+  | { mode: "new"; classificationVocabulary: ClassificationVocabularyDoc }
+  | {
+      mode: "edit";
+      initialDataset: DatasetCatalogueEntry;
+      classificationVocabulary: ClassificationVocabularyDoc;
+    };
 
 // Fields that have required inline validation
 const TEXT_REQUIRED = [
@@ -78,9 +75,8 @@ const TEXT_REQUIRED = [
 ] as const;
 type RequiredTextField = (typeof TEXT_REQUIRED)[number];
 
-function selectItems<T extends string>(values: T[], mapLabel: (v: T) => string) {
-  return values.map((value) => ({ label: mapLabel(value), value }));
-}
+const FORM_TOGGLE_CHIP_CN =
+  "!h-[34px] !min-h-0 min-w-0 shrink-0 rounded-full border border-border/60 bg-transparent px-[14px] text-[13px] font-normal text-foreground/65 shadow-none transition-all duration-150 hover:bg-muted/60 hover:border-border hover:text-foreground focus-visible:border-[#C4674F]/60 focus-visible:ring-0 focus-visible:shadow-[0_0_0_3px_rgba(196,103,79,0.08)] aria-pressed:border-[#C4674F]/40 aria-pressed:bg-[#C4674F]/10 aria-pressed:text-[#C4674F] aria-pressed:font-medium data-[pressed]:border-[#C4674F]/40 data-[pressed]:bg-[#C4674F]/10 data-[pressed]:text-[#C4674F] data-[pressed]:font-medium";
 
 function buildPayload(
   mode: "new" | "edit",
@@ -91,7 +87,10 @@ function buildPayload(
     internal_storage_path: string;
     modality: Modality;
     anatomy: string;
+    body_regions: BodyRegion[];
+    anatomy_tags: string;
     task: Task;
+    annotation_types: AnnotationType[];
     access_level: AccessLevel;
     status: string;
     n_patients: string;
@@ -100,6 +99,9 @@ function buildPayload(
     dimensionality: string;
     license: string;
     access_notes: string;
+    original_authors: string;
+    bibtex_citation: string;
+    upstream_url: string;
   },
   initial: DatasetCatalogueEntry | undefined,
 ): Record<string, unknown> {
@@ -121,6 +123,16 @@ function buildPayload(
     created_at: mode === "edit" && initial ? initial.created_at : now,
     updated_at: now,
   };
+  if (values.body_regions.length > 0) {
+    o.body_regions = values.body_regions;
+  }
+  const anatomyTags = parseAnatomyTags(values.anatomy_tags);
+  if (anatomyTags.length > 0) {
+    o.anatomy_tags = anatomyTags;
+  }
+  if (values.annotation_types.length > 0) {
+    o.annotation_types = values.annotation_types;
+  }
   if (initial?.created_by_user_id) {
     o.created_by_user_id = initial.created_by_user_id;
   }
@@ -141,13 +153,44 @@ function buildPayload(
   }
   if (values.license.trim()) o.license = values.license.trim();
   if (values.access_notes.trim()) o.access_notes = values.access_notes.trim();
+  if (values.original_authors.trim()) {
+    o.original_authors = values.original_authors.trim();
+  }
+  if (values.bibtex_citation.trim()) {
+    o.bibtex_citation = values.bibtex_citation.trim();
+  }
+  if (values.upstream_url.trim()) {
+    o.upstream_url = values.upstream_url.trim();
+  }
   return o;
+}
+
+function isValidOptionalHttpUrl(s: string): boolean {
+  const t = s.trim();
+  if (!t) return true;
+  try {
+    const u = new URL(t);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function parseCount(raw: string): number | undefined {
   if (raw.trim() === "") return undefined;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) ? n : undefined;
+}
+
+function parseAnatomyTags(raw: string) {
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map(normalizeAnatomyTag)
+        .filter(Boolean),
+    ),
+  );
 }
 
 // Human-readable per-field error messages
@@ -170,10 +213,9 @@ function fieldError(field: RequiredTextField, value: string, mode: "new" | "edit
   return null;
 }
 
-// Asterisk required indicator appended to label text
 function Req() {
   return (
-    <span className="ml-0.5 text-brand" aria-hidden>
+    <span className="ml-0.5 align-super text-[11px] text-[#C4674F]" aria-hidden>
       *
     </span>
   );
@@ -189,19 +231,33 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <Card size="sm" className="rounded-2xl bg-card/80">
-      <CardHeader className="border-b border-border">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-5">{children}</CardContent>
-    </Card>
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      <div className="border-b border-border/30 px-7 pb-6 pt-7">
+        <div className="border-l-2 border-[#C4674F]/50 pl-3">
+          <div className="text-[13px] font-semibold tracking-[0.02em] text-foreground/80">
+            {title}
+          </div>
+        </div>
+        <p className="mt-0.5 text-[13px] italic leading-snug text-muted-foreground/60">
+          {description}
+        </p>
+      </div>
+      <div className="p-7">{children}</div>
+    </div>
   );
 }
 
 export function DatasetEditorForm(props: EditorProps) {
   const router = useRouter();
   const mode = props.mode;
+  const vocab = props.classificationVocabulary;
+  const fallbackModality = vocab.fields.modality[0]?.value ?? "";
+  const fallbackTask = vocab.fields.task[0]?.value ?? "";
+  const fallbackAccess =
+    vocab.fields.access_level.find((t) => t.value === "internal")?.value ??
+    vocab.fields.access_level[0]?.value ??
+    "internal";
+
   const initial = props.mode === "edit" ? props.initialDataset : undefined;
   const lockedId = initial?.id;
   const formRef = useRef<HTMLFormElement>(null);
@@ -214,13 +270,22 @@ export function DatasetEditorForm(props: EditorProps) {
   const [internal_storage_path, setInternalStoragePath] = useState(
     initial?.internal_storage_path ?? "",
   );
-  const [modality, setModality] = useState<Modality>(
-    initial?.modality ?? "CT",
+  const [modality, setModality] = useState<string>(
+    initial?.modality ?? fallbackModality,
   );
   const [anatomy, setAnatomy] = useState(initial?.anatomy ?? "");
-  const [task, setTask] = useState<Task>(initial?.task ?? "segmentation");
+  const [body_regions, setBodyRegions] = useState<BodyRegion[]>(
+    initial?.body_regions ?? [],
+  );
+  const [anatomy_tags, setAnatomyTags] = useState(
+    initial?.anatomy_tags?.join(", ") ?? "",
+  );
+  const [task, setTask] = useState<Task>(initial?.task ?? fallbackTask);
+  const [annotation_types, setAnnotationTypes] = useState<AnnotationType[]>(
+    initial?.annotation_types ?? [],
+  );
   const [access_level, setAccessLevel] = useState<AccessLevel>(
-    initial?.access_level ?? "internal",
+    initial?.access_level ?? fallbackAccess,
   );
   const [status, setStatus] = useState(initial?.status ?? NONE);
   const [n_patients, setNPatients] = useState(
@@ -237,6 +302,14 @@ export function DatasetEditorForm(props: EditorProps) {
   );
   const [license, setLicense] = useState(initial?.license ?? "");
   const [access_notes, setAccessNotes] = useState(initial?.access_notes ?? "");
+  const [original_authors, setOriginalAuthors] = useState(
+    initial?.original_authors ?? "",
+  );
+  const [bibtex_citation, setBibtexCitation] = useState(
+    initial?.bibtex_citation ?? "",
+  );
+  const [upstream_url, setUpstreamUrl] = useState(initial?.upstream_url ?? "");
+  const [touched_upstream_url, setTouchedUpstreamUrl] = useState(false);
   const [markdown, setMarkdown] = useState("");
   const [initialMarkdown, setInitialMarkdown] = useState("");
 
@@ -256,10 +329,13 @@ export function DatasetEditorForm(props: EditorProps) {
     setName("");
     setShortDescription("");
     setInternalStoragePath("");
-    setModality("CT");
+    setModality(fallbackModality);
     setAnatomy("");
-    setTask("segmentation");
-    setAccessLevel("internal");
+    setBodyRegions([]);
+    setAnatomyTags("");
+    setTask(fallbackTask);
+    setAnnotationTypes([]);
+    setAccessLevel(fallbackAccess);
     setStatus(NONE);
     setNPatients("");
     setNStudies("");
@@ -267,6 +343,10 @@ export function DatasetEditorForm(props: EditorProps) {
     setDimensionality(NONE);
     setLicense("");
     setAccessNotes("");
+    setOriginalAuthors("");
+    setBibtexCitation("");
+    setUpstreamUrl("");
+    setTouchedUpstreamUrl(false);
     setMarkdown("");
     setInitialMarkdown("");
     setTouched({});
@@ -280,6 +360,7 @@ export function DatasetEditorForm(props: EditorProps) {
     const all: Partial<Record<RequiredTextField, boolean>> = {};
     for (const f of TEXT_REQUIRED) all[f] = true;
     setTouched(all);
+    setTouchedUpstreamUrl(true);
   }
 
   const fieldValues: Record<RequiredTextField, string> = useMemo(
@@ -304,7 +385,16 @@ export function DatasetEditorForm(props: EditorProps) {
     return result;
   }, [touched, fieldValues, mode]);
 
-  const hasFieldErrors = Object.keys(errors).length > 0;
+  const upstreamUrlError = useMemo(() => {
+    if (!touched_upstream_url) return null;
+    if (upstream_url.trim() === "" || isValidOptionalHttpUrl(upstream_url)) {
+      return null;
+    }
+    return "Use a full http(s) URL (e.g. https://example.com/dataset).";
+  }, [touched_upstream_url, upstream_url]);
+
+  const hasFieldErrors =
+    Object.keys(errors).length > 0 || upstreamUrlError !== null;
 
   // Count empty required fields (for submit button hint)
   const emptyRequiredCount = useMemo(() => {
@@ -316,6 +406,20 @@ export function DatasetEditorForm(props: EditorProps) {
     }
     return count;
   }, [fieldValues, mode]);
+
+  const requiredTextTotal = useMemo(() => {
+    let n = 0;
+    for (const f of TEXT_REQUIRED) {
+      if (f === "id" && mode === "edit") continue;
+      n++;
+    }
+    return n;
+  }, [mode]);
+
+  const filledRequiredCount = Math.max(
+    0,
+    requiredTextTotal - emptyRequiredCount,
+  );
 
   useEffect(() => {
     if (mode !== "edit" || !lockedId) return;
@@ -335,22 +439,51 @@ export function DatasetEditorForm(props: EditorProps) {
     return () => { cancelled = true; };
   }, [mode, lockedId]);
 
-  const modalityItems = useMemo(() => selectItems(MODALITIES, (x) => x), []);
-  const taskItems = useMemo(() => selectItems(TASKS, (x) => x), []);
-  const accessItems = useMemo(() => selectItems(ACCESS_LEVELS, (x) => x), []);
-  const statusItems = useMemo(
+  const modalityItems = useMemo(
+    () => vocab.fields.modality.map((t) => ({ label: t.label, value: t.value })),
+    [vocab],
+  );
+  const taskItems = useMemo(
+    () => vocab.fields.task.map((t) => ({ label: t.label, value: t.value })),
+    [vocab],
+  );
+  const bodyRegionItems = useMemo(
+    () =>
+      vocab.fields.body_region.map((t) => ({ label: t.label, value: t.value })),
+    [vocab],
+  );
+  const annotationTypeItems = useMemo(
+    () =>
+      vocab.fields.annotation_type.map((t) => ({
+        label: t.label,
+        value: t.value,
+      })),
+    [vocab],
+  );
+  const accessChipItems = useMemo(
+    () =>
+      vocab.fields.access_level.map((t) => ({
+        label: t.label,
+        value: t.value,
+      })),
+    [vocab],
+  );
+  const statusChipItems = useMemo(
     () => [
       { label: "Not set", value: NONE },
-      ...selectItems(STATUSES, (x) => x),
+      ...vocab.fields.status.map((t) => ({ label: t.label, value: t.value })),
     ],
-    [],
+    [vocab],
   );
   const dimItems = useMemo(
     () => [
       { label: "Not set", value: NONE },
-      ...selectItems(DIMENSIONALITIES, (x) => x),
+      ...vocab.fields.dimensionality.map((t) => ({
+        label: t.label,
+        value: t.value,
+      })),
     ],
-    [],
+    [vocab],
   );
 
   async function onSubmit(e: React.FormEvent) {
@@ -367,16 +500,24 @@ export function DatasetEditorForm(props: EditorProps) {
       return !!fieldError(f, fieldValues[f], mode);
     });
 
-    if (anyEmpty) {
-      // Scroll to the first invalid field
+    const upstreamInvalid =
+      upstream_url.trim() !== "" && !isValidOptionalHttpUrl(upstream_url);
+
+    if (anyEmpty || upstreamInvalid) {
       requestAnimationFrame(() => {
         const firstInvalid = formRef.current?.querySelector<HTMLElement>(
           "[aria-invalid='true'], [data-invalid='true']",
         );
-        firstInvalid?.closest("[data-slot='field']")?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+        if (firstInvalid) {
+          firstInvalid.closest("[data-slot='field']")?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        } else if (upstreamInvalid) {
+          document
+            .getElementById("dataset-upstream-url")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       });
       return;
     }
@@ -401,7 +542,10 @@ export function DatasetEditorForm(props: EditorProps) {
       internal_storage_path,
       modality,
       anatomy,
+      body_regions,
+      anatomy_tags,
       task,
+      annotation_types,
       access_level,
       status,
       n_patients,
@@ -410,12 +554,18 @@ export function DatasetEditorForm(props: EditorProps) {
       dimensionality,
       license,
       access_notes,
+      original_authors,
+      bibtex_citation,
+      upstream_url,
     };
 
     const payload = buildPayload(mode, v, initial);
-    const validated = validateDatasetPayload(payload, slug);
+    const validated = validateDatasetPayload(payload, slug, vocab);
     if (!validated.ok) {
-      // Shouldn't normally reach here if per-field checks pass, but guard anyway
+      if ("vocabularyErrors" in validated) {
+        setApiError(validated.vocabularyErrors.join(" "));
+        return;
+      }
       setApiError("Unexpected validation error — check all required fields.");
       return;
     }
@@ -492,18 +642,12 @@ export function DatasetEditorForm(props: EditorProps) {
     : mode === "new"
       ? "Create dataset"
       : "Save changes";
-  const saveStatus = hasFieldErrors
-    ? "Fill in the highlighted fields before saving."
-    : emptyRequiredCount > 0
-      ? `${emptyRequiredCount} required ${emptyRequiredCount === 1 ? "field" : "fields"} left.`
-      : "Ready to save.";
-
   return (
     <>
       <form
         ref={formRef}
         onSubmit={(e) => void onSubmit(e)}
-        className="flex flex-col gap-4"
+        className={DATASET_EDITOR_FORM_SCOPE}
       >
         {apiError ? (
           <Alert variant="destructive">
@@ -517,10 +661,10 @@ export function DatasetEditorForm(props: EditorProps) {
           description="Name the dataset and define the stable catalogue id."
         >
           <FieldGroup className="gap-5">
-            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+            <FieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
               {mode === "edit" ? (
                 <Field>
-                  <FieldLabel htmlFor="dataset-id">Id</FieldLabel>
+                  <FieldLabel htmlFor="dataset-id">Dataset ID</FieldLabel>
                   <Input
                     id="dataset-id"
                     value={lockedId}
@@ -535,7 +679,7 @@ export function DatasetEditorForm(props: EditorProps) {
               ) : (
                 <Field data-invalid={!!errors.id || undefined}>
                   <FieldLabel htmlFor="dataset-id">
-                    Id <Req />
+                    Dataset ID <Req />
                   </FieldLabel>
                   <Input
                     id="dataset-id"
@@ -583,7 +727,7 @@ export function DatasetEditorForm(props: EditorProps) {
           title="Classification"
           description="Keep the tags short and predictable so the catalogue stays scannable."
         >
-          <FieldGroup className="grid gap-4 sm:grid-cols-2">
+          <FieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
             <Field>
               <FieldLabel>
                 Modality <Req />
@@ -591,11 +735,9 @@ export function DatasetEditorForm(props: EditorProps) {
               <Select
                 items={modalityItems}
                 value={modality}
-                onValueChange={(val) =>
-                  setModality((val ?? modality) as Modality)
-                }
+                onValueChange={(val) => setModality(val ?? modality)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger size="lg" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -617,9 +759,9 @@ export function DatasetEditorForm(props: EditorProps) {
               <Select
                 items={taskItems}
                 value={task}
-                onValueChange={(val) => setTask((val ?? task) as Task)}
+                onValueChange={(val) => setTask(val ?? task)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger size="lg" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -634,7 +776,72 @@ export function DatasetEditorForm(props: EditorProps) {
               </Select>
             </Field>
 
-            <Field data-invalid={!!errors.anatomy || undefined}>
+            <Field className="sm:col-span-2">
+              <FieldLabel>Body regions</FieldLabel>
+              <ToggleGroup
+                multiple
+                aria-label="Body region tags"
+                className="flex w-full flex-wrap gap-2"
+                value={body_regions}
+                onValueChange={(values) =>
+                  setBodyRegions(values as BodyRegion[])
+                }
+              >
+                {bodyRegionItems.map((item) => (
+                  <ToggleGroupItem
+                    key={item.value}
+                    value={item.value}
+                    className={FORM_TOGGLE_CHIP_CN}
+                  >
+                    {item.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <FieldDescription>
+                Used for the visual body-map filters on the search page.
+              </FieldDescription>
+            </Field>
+
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor="anatomy-tags">Anatomy tags</FieldLabel>
+              <Input
+                id="anatomy-tags"
+                value={anatomy_tags}
+                onChange={(e) => setAnatomyTags(e.target.value)}
+                placeholder="e.g. liver, portal-vein, pancreas"
+              />
+              <FieldDescription>
+                Comma-separated lowercase tags; spaces are normalized to hyphens.
+              </FieldDescription>
+            </Field>
+
+            <Field className="sm:col-span-2">
+              <FieldLabel>Annotation types</FieldLabel>
+              <ToggleGroup
+                multiple
+                aria-label="Annotation type tags"
+                className="flex w-full flex-wrap gap-2"
+                value={annotation_types}
+                onValueChange={(values) =>
+                  setAnnotationTypes(values as AnnotationType[])
+                }
+              >
+                {annotationTypeItems.map((item) => (
+                  <ToggleGroupItem
+                    key={item.value}
+                    value={item.value}
+                    className={FORM_TOGGLE_CHIP_CN}
+                  >
+                    {item.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <FieldDescription>
+                Choose how the labels are represented, or leave empty when unknown.
+              </FieldDescription>
+            </Field>
+
+            <Field className="sm:col-span-2" data-invalid={!!errors.anatomy || undefined}>
               <FieldLabel htmlFor="dataset-anatomy">
                 Anatomy <Req />
               </FieldLabel>
@@ -656,26 +863,24 @@ export function DatasetEditorForm(props: EditorProps) {
               ) : null}
             </Field>
 
-            <Field>
+            <Field className="sm:col-span-2">
               <FieldLabel>Status</FieldLabel>
-              <Select
-                items={statusItems}
-                value={status}
-                onValueChange={(val) => setStatus(val ?? NONE)}
+              <ToggleGroup
+                aria-label="Dataset status"
+                className="flex w-full flex-wrap gap-2"
+                value={status === NONE ? [] : [status]}
+                onValueChange={(vals) => setStatus(vals[0] ?? NONE)}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {statusItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                {statusChipItems.map((item) => (
+                  <ToggleGroupItem
+                    key={item.value}
+                    value={item.value}
+                    className={FORM_TOGGLE_CHIP_CN}
+                  >
+                    {item.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
             </Field>
           </FieldGroup>
         </FormSection>
@@ -689,20 +894,26 @@ export function DatasetEditorForm(props: EditorProps) {
               <FieldLabel htmlFor="dataset-path">
                 Internal storage path <Req />
               </FieldLabel>
-              <Input
-                id="dataset-path"
-                value={internal_storage_path}
-                onChange={(e) => setInternalStoragePath(e.target.value)}
-                onBlur={() => touch("internal_storage_path")}
-                className="font-mono text-sm"
-                placeholder="/mnt/diag-data/datasets/lidc-idri"
-                aria-invalid={!!errors.internal_storage_path}
-                aria-describedby={
-                  errors.internal_storage_path
-                    ? "dataset-path-error"
-                    : "dataset-path-desc"
-                }
-              />
+              <div className="relative">
+                <FolderIcon
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/40"
+                  aria-hidden
+                />
+                <Input
+                  id="dataset-path"
+                  value={internal_storage_path}
+                  onChange={(e) => setInternalStoragePath(e.target.value)}
+                  onBlur={() => touch("internal_storage_path")}
+                  className="bg-muted/40 pl-9 font-mono text-sm"
+                  placeholder="/mnt/diag-data/datasets/lidc-idri"
+                  aria-invalid={!!errors.internal_storage_path}
+                  aria-describedby={
+                    errors.internal_storage_path
+                      ? "dataset-path-error"
+                      : "dataset-path-desc"
+                  }
+                />
+              </div>
               {errors.internal_storage_path ? (
                 <FieldError id="dataset-path-error">
                   {errors.internal_storage_path}
@@ -714,34 +925,33 @@ export function DatasetEditorForm(props: EditorProps) {
               )}
             </Field>
 
-            <FieldGroup className="grid gap-4 sm:grid-cols-2">
-              <Field>
+            <FieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
+              <Field className="min-w-0">
                 <FieldLabel>
                   Access level <Req />
                 </FieldLabel>
-                <Select
-                  items={accessItems}
-                  value={access_level}
-                  onValueChange={(val) =>
-                    setAccessLevel((val ?? access_level) as AccessLevel)
-                  }
+                <ToggleGroup
+                  aria-label="Access level"
+                  className="flex w-full flex-wrap gap-2"
+                  value={[access_level]}
+                  onValueChange={(vals) => {
+                    const next = vals[0];
+                    if (next) setAccessLevel(next as AccessLevel);
+                  }}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {accessItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  {accessChipItems.map((item) => (
+                    <ToggleGroupItem
+                      key={item.value}
+                      value={item.value}
+                      className={FORM_TOGGLE_CHIP_CN}
+                    >
+                      {item.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
               </Field>
 
-              <Field>
+              <Field className="min-w-0">
                 <FieldLabel htmlFor="license">License</FieldLabel>
                 <Input
                   id="license"
@@ -766,10 +976,86 @@ export function DatasetEditorForm(props: EditorProps) {
         </FormSection>
 
         <FormSection
+          title="Provenance"
+          description="Optional upstream source, citation, and download link. Use for external or mixed internal/external datasets."
+        >
+          <FieldGroup className="gap-5">
+            <Field>
+              <FieldLabel htmlFor="original-authors">Original author(s)</FieldLabel>
+              <Input
+                id="original-authors"
+                value={original_authors}
+                onChange={(e) => setOriginalAuthors(e.target.value)}
+                placeholder="Who created the upstream or open-resource (e.g. paper authors, consortium)."
+              />
+            </Field>
+
+            <Field>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <FieldLabel htmlFor="bibtex-citation">
+                    BibTeX / citation
+                  </FieldLabel>
+                  <FieldDescription>
+                    Full citation to copy into papers; monospace below.
+                  </FieldDescription>
+                </div>
+                {bibtex_citation.trim() ? (
+                  <CopyClipboardButton
+                    text={bibtex_citation}
+                    className="shrink-0 self-start sm:self-auto"
+                  />
+                ) : (
+                  <p className="text-[length:var(--text-xs)] text-muted-foreground sm:pb-0.5">
+                    Save text to enable Copy
+                  </p>
+                )}
+              </div>
+              <Textarea
+                id="bibtex-citation"
+                value={bibtex_citation}
+                onChange={(e) => setBibtexCitation(e.target.value)}
+                rows={6}
+                className="mt-2 font-mono text-xs leading-relaxed"
+                placeholder="@article{...}"
+                spellCheck={false}
+              />
+            </Field>
+
+            <Field data-invalid={!!upstreamUrlError || undefined}>
+              <FieldLabel htmlFor="dataset-upstream-url">
+                Upstream / open-source URL
+              </FieldLabel>
+              <Input
+                id="dataset-upstream-url"
+                value={upstream_url}
+                onChange={(e) => setUpstreamUrl(e.target.value)}
+                onBlur={() => setTouchedUpstreamUrl(true)}
+                className="font-mono text-sm"
+                placeholder="https://"
+                inputMode="url"
+                autoComplete="off"
+                aria-invalid={!!upstreamUrlError}
+                aria-describedby={
+                  upstreamUrlError ? "upstream-url-error" : "upstream-url-desc"
+                }
+              />
+              {upstreamUrlError ? (
+                <FieldError id="upstream-url-error">{upstreamUrlError}</FieldError>
+              ) : (
+                <FieldDescription id="upstream-url-desc">
+                  Public download or project page (https recommended).
+                </FieldDescription>
+              )}
+            </Field>
+          </FieldGroup>
+        </FormSection>
+
+        <FormSection
           title="Scale"
           description="Optional counts help researchers judge fit quickly."
         >
-          <FieldGroup className="grid gap-4 sm:grid-cols-4">
+          <FieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-4">
             <Field>
               <FieldLabel htmlFor="n-patients">Patients</FieldLabel>
               <Input
@@ -807,7 +1093,7 @@ export function DatasetEditorForm(props: EditorProps) {
                 value={dimensionality}
                 onValueChange={(val) => setDimensionality(val ?? NONE)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger size="lg" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -875,30 +1161,74 @@ export function DatasetEditorForm(props: EditorProps) {
           </FieldGroup>
         </FormSection>
 
-        <div className="sticky bottom-3 flex flex-col gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
-          <p
-            className={cn(
-              "text-[length:var(--text-xs)]",
-              hasFieldErrors ? "text-destructive" : "text-muted-foreground",
-            )}
-            role="status"
-            aria-live="polite"
-          >
-            {pending ? "Saving dataset..." : saveStatus}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={cancelHref}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                pending && "pointer-events-none opacity-55",
-              )}
+        <div className="sticky bottom-0 z-20 border-t border-border/30 bg-background/80 py-4 backdrop-blur-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
+              role="status"
+              aria-live="polite"
             >
-              Cancel
-            </Link>
-            <Button type="submit" disabled={pending} aria-disabled={pending}>
-              {submitLabel}
-            </Button>
+              {pending ? (
+                <span className="text-xs font-medium text-muted-foreground/60">
+                  Saving dataset…
+                </span>
+              ) : null}
+              {hasFieldErrors && !pending ? (
+                <span className="text-xs font-medium text-destructive">
+                  Fill in the highlighted fields before saving.
+                </span>
+              ) : null}
+              {!pending ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  {emptyRequiredCount > 0 ? (
+                    <span className="text-xs font-medium text-muted-foreground/60">
+                      {emptyRequiredCount} fields remaining
+                    </span>
+                  ) : null}
+                  <div
+                    className="flex items-center gap-1.5"
+                    aria-label={`${filledRequiredCount} of ${requiredTextTotal} required fields complete`}
+                  >
+                    {Array.from({ length: requiredTextTotal }, (_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "size-1 rounded-full transition-colors duration-200",
+                          i < filledRequiredCount
+                            ? "bg-[#C4674F]"
+                            : "bg-border/40",
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Link
+                href={cancelHref}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "text-muted-foreground/70 hover:bg-transparent hover:text-foreground/80",
+                  pending && "pointer-events-none opacity-55",
+                )}
+              >
+                Cancel
+              </Link>
+              <Button
+                type="submit"
+                disabled={pending}
+                aria-disabled={pending}
+                className={cn(
+                  "h-10 border-transparent bg-[#C4674F] px-6 text-sm font-medium text-white shadow-none",
+                  "hover:border-transparent hover:bg-[#B85A43] hover:shadow-[0_2px_8px_rgba(196,103,79,0.30)]",
+                  "focus-visible:border-[#C4674F] focus-visible:ring-[#C4674F]/35",
+                  "disabled:bg-[#C4674F]/50 disabled:opacity-55",
+                )}
+              >
+                {submitLabel}
+              </Button>
+            </div>
           </div>
         </div>
       </form>

@@ -4,7 +4,12 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ChevronsUpDownIcon,
+  CheckIcon,
+} from "lucide-react"
 
 const Select = SelectPrimitive.Root
 
@@ -34,20 +39,23 @@ function SelectTrigger({
   children,
   ...props
 }: SelectPrimitive.Trigger.Props & {
-  size?: "sm" | "default"
+  size?: "sm" | "default" | "lg"
 }) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit cursor-pointer items-center justify-between gap-1.5 rounded-full border border-input bg-secondary py-2 pr-2 pl-3 text-sm whitespace-nowrap outline-none select-none transition-[background-color,border-color,color,box-shadow] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:border-border-strong hover:bg-muted focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex w-fit cursor-pointer items-center justify-between gap-1.5 rounded-full border border-input bg-secondary py-2 pr-2 pl-3 text-sm whitespace-nowrap outline-none select-none transition-[background-color,border-color,color,box-shadow] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:border-border-strong hover:bg-muted focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=lg]:h-[42px] data-[size=lg]:min-h-[42px] data-[size=lg]:rounded-md data-[size=lg]:px-3 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
     >
       {children}
-      <ChevronDownIcon className="text-muted-foreground" aria-hidden />
+      <ChevronsUpDownIcon
+        className="size-3.5 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
     </SelectPrimitive.Trigger>
   )
 }

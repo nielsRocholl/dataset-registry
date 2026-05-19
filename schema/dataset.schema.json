@@ -40,17 +40,9 @@
     },
     "modality": {
       "type": "string",
-      "enum": [
-        "CT",
-        "MRI",
-        "PET",
-        "XRay",
-        "ultrasound",
-        "microscopy",
-        "pathology",
-        "mixed",
-        "other"
-      ]
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Controlled value from config/classification-vocabulary.json (modality)."
     },
     "anatomy": {
       "type": "string",
@@ -58,32 +50,64 @@
       "maxLength": 512,
       "description": "Organ, region, or anatomical scope; normalize when possible."
     },
+    "body_regions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "uniqueItems": true,
+      "description": "Optional broad anatomical regions for filter accuracy."
+    },
+    "anatomy_tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+      },
+      "uniqueItems": true,
+      "description": "Optional normalized organ or structure tags, e.g. liver, lung, brain."
+    },
     "task": {
       "type": "string",
-      "enum": [
-        "segmentation",
-        "detection",
-        "classification",
-        "registration",
-        "reconstruction",
-        "other"
-      ]
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Controlled value from config/classification-vocabulary.json (task)."
+    },
+    "annotation_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "description": "Controlled value from vocabulary (annotation_type)."
+      },
+      "uniqueItems": true,
+      "description": "Optional annotation representation hints used for research filtering."
     },
     "access_level": {
       "type": "string",
-      "enum": ["public", "internal", "restricted"]
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Controlled value from vocabulary (access_level)."
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "active", "deprecated"],
-      "description": "Optional lifecycle hint; omit if unknown."
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Optional lifecycle hint; omit if unknown. Controlled vocabulary (status)."
     },
     "n_patients": { "type": "integer", "minimum": 0 },
     "n_studies": { "type": "integer", "minimum": 0 },
     "n_images": { "type": "integer", "minimum": 0 },
     "dimensionality": {
       "type": "string",
-      "enum": ["2D", "3D", "mixed"]
+      "minLength": 1,
+      "maxLength": 16,
+      "description": "Controlled value from vocabulary (dimensionality)."
     },
     "license": {
       "type": "string",
@@ -94,6 +118,24 @@
       "type": "string",
       "maxLength": 2000,
       "description": "How to obtain access or caveats; no secrets or credentials."
+    },
+    "original_authors": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "Creators of the upstream or external resource (distinct from catalogue created_by)."
+    },
+    "bibtex_citation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 16000,
+      "description": "Full BibTeX or bibliography string for citing the upstream source."
+    },
+    "upstream_url": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048,
+      "description": "Canonical download or project page for the upstream dataset (http or https)."
     },
     "created_by": {
       "type": "string",

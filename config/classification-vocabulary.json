@@ -1,0 +1,61 @@
+{
+  "updated_at": "2026-05-19T12:00:00.000Z",
+  "fields": {
+    "modality": [
+      { "value": "CT", "label": "CT" },
+      { "value": "MRI", "label": "MRI" },
+      { "value": "PET", "label": "PET" },
+      { "value": "XRay", "label": "X-ray" },
+      { "value": "ultrasound", "label": "Ultrasound" },
+      { "value": "microscopy", "label": "Microscopy" },
+      { "value": "pathology", "label": "Pathology" },
+      { "value": "mixed", "label": "Mixed" },
+      { "value": "other", "label": "Other" }
+    ],
+    "task": [
+      { "value": "segmentation", "label": "Segmentation" },
+      { "value": "detection", "label": "Detection" },
+      { "value": "classification", "label": "Classification" },
+      { "value": "registration", "label": "Registration" },
+      { "value": "reconstruction", "label": "Reconstruction" },
+      { "value": "other", "label": "Other" }
+    ],
+    "body_region": [
+      { "value": "head_neck", "label": "Head / neck" },
+      { "value": "thorax", "label": "Thorax" },
+      { "value": "abdomen", "label": "Abdomen" },
+      { "value": "pelvis", "label": "Pelvis" },
+      { "value": "breast", "label": "Breast" },
+      { "value": "spine_msk", "label": "Spine / MSK" },
+      { "value": "whole_body", "label": "Whole body" },
+      { "value": "tissue_cell", "label": "Tissue / cell" },
+      { "value": "other", "label": "Other" }
+    ],
+    "annotation_type": [
+      { "value": "voxel_mask", "label": "Voxel mask" },
+      { "value": "mask_2d", "label": "2D mask" },
+      { "value": "point", "label": "Point" },
+      { "value": "bounding_box", "label": "Bounding box" },
+      { "value": "image_label", "label": "Image label" },
+      { "value": "study_label", "label": "Study label" },
+      { "value": "text_report", "label": "Report / text" },
+      { "value": "none", "label": "None" },
+      { "value": "other", "label": "Other" }
+    ],
+    "access_level": [
+      { "value": "public", "label": "Public" },
+      { "value": "internal", "label": "Internal" },
+      { "value": "restricted", "label": "Restricted" }
+    ],
+    "status": [
+      { "value": "draft", "label": "Draft" },
+      { "value": "active", "label": "Active" },
+      { "value": "deprecated", "label": "Deprecated" }
+    ],
+    "dimensionality": [
+      { "value": "2D", "label": "2D" },
+      { "value": "3D", "label": "3D" },
+      { "value": "mixed", "label": "Mixed" }
+    ]
+  }
+}

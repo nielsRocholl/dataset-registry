@@ -29,6 +29,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      healthicons-react:
+        specifier: ^3.5.0
+        version: 3.5.0(react@19.2.4)
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.4)
@@ -1767,6 +1770,11 @@ packages:
 
   headers-polyfill@5.0.1:
     resolution: {integrity: sha512-1TJ6Fih/b8h5TIcv+1+Hw0PDQWJTKDKzFZzcKOiW1wJza3XoAQlkCuXLbymPYB8+ZQyw8mHvdw560e8zVFIWyA==}
+
+  healthicons-react@3.5.0:
+    resolution: {integrity: sha512-sfl3o7sTcxPJekSMxb8gx6fzuveF8C+q1wh+SalLQF4WP/S9IuD2jBExDrPBoacOpxsWU7Iz6NPnOGVqexFeJw==}
+    peerDependencies:
+      react: 18 || 19
 
   hermes-estree@0.25.1:
     resolution: {integrity: sha512-0wUoCcLp+5Ev5pDW2OriHC2MJCbwLwuRx+gAqMTOkGKJJiBCLjtrvy4PWUGn6MIVefecRpzoOZ/UV6iGdOr+Cw==}
@@ -4893,6 +4901,10 @@ snapshots:
     dependencies:
       '@types/set-cookie-parser': 2.4.10
       set-cookie-parser: 3.1.0
+
+  healthicons-react@3.5.0(react@19.2.4):
+    dependencies:
+      react: 19.2.4
 
   hermes-estree@0.25.1: {}
 

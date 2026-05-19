@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  AsteriskIcon,
-  ChevronLeftIcon,
-} from "lucide-react";
+import { ChevronLeftIcon } from "lucide-react";
 
+import { DatasetEditorPageHeader } from "@/components/dataset-editor-page-header";
 import { DatasetEditorForm } from "@/components/dataset-editor-form";
 import {
   getCanMutateDataset,
@@ -12,6 +10,7 @@ import {
 } from "@/lib/catalogue/editor-session";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
+import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
 
 export const dynamicParams = true;
 
@@ -25,9 +24,10 @@ export default async function EditDatasetPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [initialDataset] = await Promise.all([
+  const [initialDataset, , classificationVocabulary] = await Promise.all([
     getDatasetEntryServer(id),
     getCurrentCatalogueUser(),
+    loadClassificationVocabularyLive(),
   ]);
   if (!initialDataset) {
     notFound();
@@ -51,22 +51,17 @@ export default async function EditDatasetPage({
           Back to detail
         </Link>
 
-        <header className="rounded-3xl border border-border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-7 sm:py-7">
-          <div className="flex items-start gap-4">
-            <AsteriskIcon className="mt-1 size-9 shrink-0 text-brand" aria-hidden />
-            <div className="min-w-0">
-              <p className="ui-kicker">Edit</p>
-              <h1 className="ui-title mt-2 text-[length:var(--text-3xl)]">
-                {initialDataset.name}
-              </h1>
-              <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
-                Refine the catalogue metadata without changing the dataset id.
-              </p>
-            </div>
-          </div>
-        </header>
+        <DatasetEditorPageHeader
+          kicker="Edit"
+          title={initialDataset.name}
+          subtitle="Refine the catalogue metadata without changing the dataset id."
+        />
 
-        <DatasetEditorForm mode="edit" initialDataset={initialDataset} />
+        <DatasetEditorForm
+          mode="edit"
+          initialDataset={initialDataset}
+          classificationVocabulary={classificationVocabulary}
+        />
       </section>
     </main>
   );

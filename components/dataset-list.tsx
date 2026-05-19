@@ -1,64 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import {
-  AsteriskIcon,
-  DatabaseIcon,
-  PlusIcon,
-  SearchIcon,
-  SlidersHorizontalIcon,
-} from "lucide-react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { AsteriskIcon, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { DatasetFilterAtlas } from "@/components/dataset-filter-atlas";
 import { DatasetStarButton } from "@/components/dataset-star-button";
+import { MedicalIcon, type MedicalIconName } from "@/components/medical-icon";
 import {
   Field,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import type { ClassificationVocabularyDoc } from "@/lib/catalogue/classification-vocabulary";
+import { vocabularyLabel } from "@/lib/catalogue/classification-vocabulary";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type {
-  AccessLevel,
-  DatasetCatalogueEntry,
-  Modality,
-  Task,
-} from "@/lib/catalogue/types";
+  datasetMatchesFilters,
+  emptyDatasetFilters,
+  formatAnatomyTagLabel,
+  getActiveFilterCount,
+  getDatasetAnnotationTypes,
+  getDatasetAnatomyTags,
+  getDatasetBodyRegions,
+  type DatasetFilterState,
+} from "@/lib/catalogue/filters";
+import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import { cn } from "@/lib/utils";
 
-const ALL = "__all__";
 const TYPING_WORDS = ["segmentation", "classification", "detection"] as const;
 
 type DatasetListProps = {
   datasets: DatasetCatalogueEntry[];
   generatedAt: string;
+  classificationVocabulary: ClassificationVocabularyDoc;
   starredDatasetIds?: string[];
 };
-
-type SelectOption = {
-  label: string;
-  value: string;
-};
-
-function selectOptions<T extends string>(values: T[], allLabel: string): SelectOption[] {
-  return [
-    { label: allLabel, value: ALL },
-    ...values.map((value) => ({ label: value, value })),
-  ];
-}
 
 function scaleLabel(dataset: DatasetCatalogueEntry) {
   const parts = [
     dataset.n_patients != null ? `${dataset.n_patients} patients` : null,
     dataset.n_studies != null ? `${dataset.n_studies} studies` : null,
+    dataset.n_images != null ? `${dataset.n_images} images` : null,
     dataset.dimensionality,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : "Metadata entry";
@@ -71,6 +55,60 @@ function formatGeneratedAt(iso: string) {
   }
 
   return `${time.toISOString().slice(0, 19).replace("T", " ")} UTC`;
+}
+
+function modalityIcon(dataset: DatasetCatalogueEntry): MedicalIconName {
+  switch (dataset.modality) {
+    case "XRay":
+      return "xray";
+    case "ultrasound":
+      return "ultrasound";
+    case "microscopy":
+      return "microscope";
+    case "pathology":
+      return "tissue";
+    case "mixed":
+      return "integratedResearch";
+    default:
+      return "radiology";
+  }
+}
+
+function primaryBodyLabel(
+  dataset: DatasetCatalogueEntry,
+  vocabulary: ClassificationVocabularyDoc,
+) {
+  const [region] = getDatasetBodyRegions(dataset, vocabulary);
+  return region ? vocabularyLabel(vocabulary, "body_region", region) : "Anatomy";
+}
+
+function primaryAnnotationLabel(
+  dataset: DatasetCatalogueEntry,
+  vocabulary: ClassificationVocabularyDoc,
+) {
+  const [annotation] = getDatasetAnnotationTypes(dataset);
+  return annotation
+    ? vocabularyLabel(vocabulary, "annotation_type", annotation)
+    : "Annotation";
+}
+
+function metadataBadges(
+  dataset: DatasetCatalogueEntry,
+  vocabulary: ClassificationVocabularyDoc,
+) {
+  return [
+    vocabularyLabel(vocabulary, "modality", dataset.modality),
+    vocabularyLabel(vocabulary, "task", dataset.task),
+    primaryAnnotationLabel(dataset, vocabulary),
+    primaryBodyLabel(dataset, vocabulary),
+    vocabularyLabel(vocabulary, "access_level", dataset.access_level),
+    dataset.dimensionality
+      ? vocabularyLabel(vocabulary, "dimensionality", dataset.dimensionality)
+      : null,
+    dataset.status
+      ? vocabularyLabel(vocabulary, "status", dataset.status)
+      : null,
+  ].filter((value): value is string => Boolean(value));
 }
 
 function TypingDatasetTitle() {
@@ -146,12 +184,19 @@ function TypingDatasetTitle() {
 export function DatasetList({
   datasets,
   generatedAt,
+  classificationVocabulary,
   starredDatasetIds = [],
 }: DatasetListProps) {
   const [query, setQuery] = useState("");
-  const [modality, setModality] = useState<string>(ALL);
-  const [task, setTask] = useState<string>(ALL);
-  const [access, setAccess] = useState<string>(ALL);
+  const [filterExcludeMode, setFilterExcludeMode] = useState(false);
+  const [filters, setFilters] = useState<DatasetFilterState>({
+    ...emptyDatasetFilters,
+  });
+
+  function handleExcludeModeChange(next: boolean) {
+    setFilterExcludeMode(next);
+    setFilters({ ...emptyDatasetFilters });
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -165,46 +210,29 @@ export function DatasetList({
     }, 180);
   }, []);
 
-  const modalityOptions = useMemo(
-    () =>
-      Array.from(new Set(datasets.map((d) => d.modality))).sort() as Modality[],
-    [datasets],
-  );
-  const taskOptions = useMemo(
-    () => Array.from(new Set(datasets.map((d) => d.task))).sort() as Task[],
-    [datasets],
-  );
-  const accessOptions = useMemo(
-    () =>
-      Array.from(new Set(datasets.map((d) => d.access_level))).sort() as AccessLevel[],
-    [datasets],
-  );
-
-  const modalityItems = useMemo(
-    () => selectOptions(modalityOptions, "All modalities"),
-    [modalityOptions],
-  );
-  const taskItems = useMemo(
-    () => selectOptions(taskOptions, "All tasks"),
-    [taskOptions],
-  );
-  const accessItems = useMemo(
-    () => selectOptions(accessOptions, "All access"),
-    [accessOptions],
-  );
-
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return datasets.filter((dataset) => {
-      if (modality !== ALL && dataset.modality !== modality) return false;
-      if (task !== ALL && dataset.task !== task) return false;
-      if (access !== ALL && dataset.access_level !== access) return false;
-      if (!q) return true;
-      const blob =
-        `${dataset.id} ${dataset.name} ${dataset.short_description} ${dataset.anatomy} ${dataset.task}`.toLowerCase();
-      return blob.includes(q);
-    });
-  }, [datasets, query, modality, task, access]);
+    return datasets.filter((dataset) =>
+      datasetMatchesFilters(
+        dataset,
+        filters,
+        query,
+        {
+          excludeMode: filterExcludeMode,
+        },
+        classificationVocabulary,
+      ),
+    );
+  }, [
+    datasets,
+    filters,
+    query,
+    filterExcludeMode,
+    classificationVocabulary,
+  ]);
+
+  const trimmedQuery = query.trim();
+  const showResults =
+    trimmedQuery.length > 0 || getActiveFilterCount(filters) > 0;
 
   const generatedLabel = useMemo(() => formatGeneratedAt(generatedAt), [generatedAt]);
   const starred = useMemo(
@@ -228,163 +256,129 @@ export function DatasetList({
 
           <FieldGroup
             id="catalogue-search"
-            className="claude-composer w-full max-w-[55rem] gap-0 p-5 sm:p-6"
+            className="claude-composer w-full max-w-[72rem] gap-6 p-7"
           >
-            <Field className="gap-0">
+            <Field className="gap-0 border-b border-border/40 pb-6">
               <FieldLabel htmlFor="dataset-search" className="sr-only">
                 Search datasets
               </FieldLabel>
-              <div className="flex min-h-20 items-start gap-4 pt-0.5">
-                <SearchIcon className="mt-0.5 size-6 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="-ml-3 flex min-h-[3.25rem] items-center gap-3 border-l-2 border-transparent pl-3 transition-[border-color] duration-150 focus-within:border-[#C4674F]">
+                <Search
+                  aria-hidden
+                  className="size-[1.2rem] shrink-0 translate-y-[0.04em] text-muted-foreground"
+                  strokeWidth={1.75}
+                />
                 <Input
                   id="dataset-search"
                   type="search"
-                  placeholder="Search datasets by name, anatomy, task..."
+                  placeholder="Search CT abdomen voxel masks, brain MRI labels, public lung datasets..."
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   autoComplete="off"
-                  className="h-auto border-0 bg-transparent px-0 py-0 text-[length:var(--text-lg)] leading-[1.25] shadow-none placeholder:text-muted-foreground focus-visible:ring-0 md:text-[length:var(--text-lg)]"
+                  className="h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-[length:var(--text-lg)] leading-snug shadow-none placeholder:text-muted-foreground focus-visible:ring-0 md:text-[length:var(--text-lg)]"
                 />
               </div>
             </Field>
 
-            <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-[length:var(--text-sm)] text-muted-foreground">
-                <PlusIcon className="size-5" aria-hidden />
-                <span>
-                  {filtered.length === datasets.length
-                    ? `${datasets.length} datasets`
-                    : `${filtered.length} of ${datasets.length} shown`}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <SlidersHorizontalIcon className="hidden size-5 text-muted-foreground sm:block" aria-hidden />
-                <Select
-                  items={modalityItems}
-                  value={modality}
-                  onValueChange={(value) => setModality(value ?? ALL)}
-                >
-                  <SelectTrigger aria-label="Filter by modality" className="w-[10rem]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {modalityItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <Select
-                  items={taskItems}
-                  value={task}
-                  onValueChange={(value) => setTask(value ?? ALL)}
-                >
-                  <SelectTrigger aria-label="Filter by task" className="w-[8.5rem]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {taskItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <Select
-                  items={accessItems}
-                  value={access}
-                  onValueChange={(value) => setAccess(value ?? ALL)}
-                >
-                  <SelectTrigger aria-label="Filter by access level" className="w-[8.5rem]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {accessItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <DatasetFilterAtlas
+              datasets={datasets}
+              filters={filters}
+              excludeMode={filterExcludeMode}
+              query={query}
+              resultCount={filtered.length}
+              totalCount={datasets.length}
+              classificationVocabulary={classificationVocabulary}
+              onExcludeModeChange={handleExcludeModeChange}
+              onFiltersChange={setFilters}
+            />
           </FieldGroup>
         </div>
 
-        <div className="w-full max-w-[55rem] pb-16">
-          <div className="mb-3 flex items-center justify-between gap-4 px-1">
-            <p className="text-[length:var(--text-sm)] text-muted-foreground">
-              Catalogue results
-            </p>
-            <p className="hidden text-[length:var(--text-xs)] text-muted-foreground sm:block">
-              Index generated {generatedLabel}
-            </p>
-          </div>
+        <div className="w-full max-w-[72rem] pb-16">
+          {showResults ? (
+            <>
+              <div className="mb-3 flex items-center justify-between gap-4 px-1">
+                <p className="text-[length:var(--text-sm)] text-muted-foreground">
+                  Catalogue results
+                </p>
+                <p className="hidden text-[length:var(--text-xs)] text-muted-foreground sm:block">
+                  Index generated {generatedLabel}
+                </p>
+              </div>
 
-          {filtered.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card px-5 py-8 text-center">
-              <p className="text-[length:var(--text-sm)] text-muted-foreground">
-                No datasets match the current search or filters.
-              </p>
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {filtered.map((dataset) => (
-                <li key={dataset.id}>
-                  <div
-                    className={cn(
-                      "group relative rounded-2xl border border-transparent outline-none",
-                      "transition-[background-color,border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)]",
-                      "hover:-translate-y-px hover:border-border hover:bg-card hover:shadow-[var(--shadow-soft)]",
-                    )}
-                  >
-                    <Link
-                      href={`/datasets/${dataset.id}`}
-                      className="flex flex-col gap-3 rounded-2xl px-4 py-3 pr-12 outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              {filtered.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-card px-5 py-8 text-center">
+                  <p className="text-[length:var(--text-sm)] text-muted-foreground">
+                    No datasets match the current search or filters.
+                  </p>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {filtered.map((dataset, index) => (
+                    <li
+                      key={dataset.id}
+                      className="dataset-row-enter"
+                      style={{ "--row-index": index } as CSSProperties}
                     >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <DatabaseIcon className="size-4 shrink-0 text-brand" aria-hidden />
-                            <h2 className="truncate text-[length:var(--text-base)] font-medium text-foreground">
-                              {dataset.name}
-                            </h2>
+                      <div
+                        className={cn(
+                          "group relative rounded-2xl border border-transparent bg-transparent outline-none",
+                          "transition-[background-color,border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)]",
+                          "hover:-translate-y-px hover:border-border hover:bg-card hover:shadow-[var(--shadow-soft)]",
+                        )}
+                      >
+                        <Link
+                          href={`/datasets/${dataset.id}`}
+                          className="flex flex-col gap-3 rounded-2xl px-4 py-3.5 pr-12 outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 gap-3">
+                              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl border border-border-subtle bg-secondary text-brand">
+                                <MedicalIcon name={modalityIcon(dataset)} />
+                              </span>
+                              <div className="min-w-0">
+                                <h2 className="truncate text-[length:var(--text-base)] font-medium text-foreground">
+                                  {dataset.name}
+                                </h2>
+                                <p className="mt-1 line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
+                                  {dataset.short_description}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[20rem] sm:justify-end">
+                              {metadataBadges(dataset, classificationVocabulary).map((label, badgeIndex) => (
+                                <Badge
+                                  key={`${dataset.id}-${label}`}
+                                  variant={badgeIndex === 0 ? "secondary" : "outline"}
+                                >
+                                  {label}
+                                </Badge>
+                              ))}
+                              <Badge variant="outline">By {dataset.created_by}</Badge>
+                            </div>
                           </div>
-                          <p className="mt-1 line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
-                            {dataset.short_description}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-wrap gap-1.5">
-                          <Badge variant="secondary">{dataset.modality}</Badge>
-                          <Badge variant="outline">{dataset.task}</Badge>
-                          <Badge variant="outline">{dataset.access_level}</Badge>
-                          <Badge variant="outline">By {dataset.created_by}</Badge>
-                        </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-12 text-[length:var(--text-xs)] text-muted-foreground">
+                            <span className="font-mono text-foreground/80">{dataset.id}</span>
+                            <span>
+                              {getDatasetAnatomyTags(dataset)
+                                .map(formatAnatomyTagLabel)
+                                .join(", ")}
+                            </span>
+                            <span>{scaleLabel(dataset)}</span>
+                          </div>
+                        </Link>
+                        <DatasetStarButton
+                          datasetId={dataset.id}
+                          initialStarred={starred.has(dataset.id)}
+                          className="absolute right-2 top-2"
+                        />
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--text-xs)] text-muted-foreground">
-                        <span className="font-mono">{dataset.id}</span>
-                        <span>{dataset.anatomy}</span>
-                        <span>{scaleLabel(dataset)}</span>
-                      </div>
-                    </Link>
-                    <DatasetStarButton
-                      datasetId={dataset.id}
-                      initialStarred={starred.has(dataset.id)}
-                      className="absolute right-2 top-2"
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : null}
         </div>
       </section>
     </main>

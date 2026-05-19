@@ -2,6 +2,12 @@
 
 Normative companion to [`schema/dataset.schema.json`](../schema/dataset.schema.json). Every field appears in the schema; **each optional field** below includes one example.
 
+## Classification vocabulary
+
+Administrators maintain allowed values for modality, task, body region, annotation type, access level, status, and dimensionality via **Manage classification options** on the admin page. Entries are stored in-repo at `config/classification-vocabulary.json` (same GitHub-backed flow as dataset files).
+
+New values should use lowercase slugs: `^[a-z0-9][a-z0-9_-]*$`. Legacy catalogue tokens **`CT`, `MRI`, `PET`, `XRay`, `2D`, `3D`** remain valid exceptions. Anything you add via the UI must validate against those rules before it is committed.
+
 ## Conventions
 
 - **Filename:** one JSON file per dataset: `datasets/<id>.json` where `<id>` equals the JSON `id` property (stem only, no slashes).
@@ -34,7 +40,7 @@ Example: `/group/proj-data/example-liver-ct-seg/`
 
 ### `modality`
 
-One of the schema enums: `CT`, `MRI`, `PET`, `XRay`, `ultrasound`, `microscopy`, `pathology`, `mixed`, `other`.
+Controlled vocabulary (`config/classification-vocabulary.json`); defaults are seeded for common imaging modalities. Use the catalogue editor selects—do not invent values that are absent from vocabulary.
 
 Example: `"CT"`
 
@@ -44,11 +50,30 @@ Organ, structure, or site; normalize when the group maintains a vocabulary.
 
 Example: `"liver"`
 
+### `body_regions` (optional)
+
+Broad anatomical regions for filtering. Prefer values from vocabulary (see Classification vocabulary above).
+
+Example: `["abdomen"]`
+
+### `anatomy_tags` (optional)
+
+Normalized organ or structure tags for filter chips. Use lowercase slugs with
+hyphens, not free text.
+
+Example: `["liver"]`
+
 ### `task`
 
-Includes **`segmentation`** as first-class plus `detection`, `classification`, `registration`, `reconstruction`, `other`.
+Controlled vocabulary (`segmentation`, `detection`, etc.—see seeded file). Add entries via admin if missing.
 
 Example: `"segmentation"`
+
+### `annotation_types` (optional)
+
+Annotation representation hints (`voxel_mask`, `bounding_box`, etc.—see seeded vocabulary).
+
+Example: `["voxel_mask"]`
 
 ## Scale / tech (optional)
 
@@ -84,7 +109,29 @@ Example: `"CC BY 4.0"`
 
 Example: `Request access via the group data steward; cite project ID XYZ in the email.` (no passwords or secrets)
 
-## Provenance (required)
+## Upstream source (optional)
+
+Use when the catalogue entry refers to an **external** resource, a **mirror** of public data, or **mixed** internal and external use. All fields are optional and independent of `access_level`.
+
+### `original_authors`
+
+Who originally published or maintains the upstream dataset (plain text).
+
+Example: `"Armato III et al., LIDC-IDRI consortium"`
+
+### `bibtex_citation`
+
+Full BibTeX entry or other bibliography string that users can paste into papers.
+
+Example: `@misc{lidc2015, title={LIDC-IDRI}, howpublished={\\url{https://www.cancerimagingarchive.net/}}, year={2015}}`
+
+### `upstream_url`
+
+HTTP(S) link to the public download, challenge page, or documentation.
+
+Example: `"https://www.cancerimagingarchive.net/collection/lidc-idri/"`
+
+## Catalogue authorship (required)
 
 ### `created_by`
 

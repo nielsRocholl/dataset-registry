@@ -33,8 +33,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CATALOGUE_FORM_FIELD_BODY_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
 import type { AdminMember } from "@/lib/catalogue/admin-members";
 import type { CatalogueRole } from "@/lib/catalogue/user-profile";
+import { cn } from "@/lib/utils";
 
 const roleItems = [
   { label: "Member", value: "member" },
@@ -184,71 +186,82 @@ export function AdminMembersPanel({
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <section className="rounded-2xl border border-border bg-card/80 px-4 py-4 shadow-[var(--shadow-soft)]">
-        <FieldGroup className="gap-4">
-          <div className="flex items-center gap-3">
-            <UserPlusIcon className="size-5 text-brand" aria-hidden />
-            <div>
-              <h2 className="text-[length:var(--text-base)] font-medium text-foreground">
+    <div className="flex flex-col gap-7">
+      <section className="flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="border-b border-border/30 px-7 pb-6 pt-7">
+          <div className="border-l-2 border-[#C4674F]/50 pl-3">
+            <div className="flex items-center gap-2">
+              <UserPlusIcon className="size-4 shrink-0 text-brand" aria-hidden />
+              <span className="text-[13px] font-semibold tracking-[0.02em] text-foreground/80">
                 Add catalogue member
-              </h2>
-              <p className="text-[length:var(--text-sm)] text-muted-foreground">
-                Pre-approve an email before the person signs in.
-              </p>
+              </span>
             </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-[1.2fr_1fr_9rem_auto] md:items-end">
-            <Field>
-              <FieldLabel htmlFor="member-email">Email</FieldLabel>
-              <Input
-                id="member-email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="person@example.com"
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="member-name">Display name</FieldLabel>
-              <Input
-                id="member-name"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Optional"
-              />
-            </Field>
-            <Field>
-              <FieldLabel>Role</FieldLabel>
-              <Select
-                items={roleItems}
-                value={role}
-                onValueChange={(value) => setRole((value ?? "member") as CatalogueRole)}
+          <p className="mt-2 text-[13px] italic leading-snug text-muted-foreground/60">
+            Pre-approve an email before the person signs in.
+          </p>
+        </div>
+
+        <div className={cn("p-7", CATALOGUE_FORM_FIELD_BODY_SCOPE)}>
+          <FieldGroup className="gap-5">
+            <div className="grid gap-x-5 gap-y-5 md:grid-cols-[1.2fr_1fr_9rem_auto] md:items-end">
+              <Field>
+                <FieldLabel htmlFor="member-email">Email</FieldLabel>
+                <Input
+                  id="member-email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="person@example.com"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="member-name">Display name</FieldLabel>
+                <Input
+                  id="member-name"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Optional"
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Role</FieldLabel>
+                <Select
+                  items={roleItems}
+                  value={role}
+                  onValueChange={(value) =>
+                    setRole((value ?? "member") as CatalogueRole)
+                  }
+                >
+                  <SelectTrigger size="lg" className="w-full" aria-label="Role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {roleItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={() => void addMember()}
               >
-                <SelectTrigger aria-label="Role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {roleItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Button type="button" disabled={pending} onClick={() => void addMember()}>
-              <UserPlusIcon data-icon="inline-start" />
-              Add
-            </Button>
-          </div>
-          <FieldDescription>
-            Members can view, create, star, and manage their own datasets. Admins
-            can manage all datasets and this list.
-          </FieldDescription>
-        </FieldGroup>
+                <UserPlusIcon data-icon="inline-start" />
+                Add
+              </Button>
+            </div>
+            <FieldDescription>
+              Members can view, create, star, and manage their own datasets. Admins
+              can manage all datasets and this list.
+            </FieldDescription>
+          </FieldGroup>
+        </div>
       </section>
 
       {error ? (
@@ -277,9 +290,12 @@ export function AdminMembersPanel({
           {members.map((member) => (
             <li
               key={member.email}
-              className="rounded-2xl border border-transparent bg-card/60 px-3.5 py-3 transition-[background-color,border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:border-border hover:bg-card hover:shadow-[var(--shadow-soft)]"
+              className={cn(
+                "rounded-2xl border border-border/40 bg-card px-3.5 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.03)] transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:border-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]",
+                CATALOGUE_FORM_FIELD_BODY_SCOPE,
+              )}
             >
-              <div className="grid gap-3 lg:grid-cols-[1fr_13rem_8rem_auto] lg:items-center">
+              <div className="grid gap-x-5 gap-y-3 lg:grid-cols-[1fr_13rem_8rem_auto] lg:items-center">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-[length:var(--text-base)] font-medium text-foreground">
@@ -313,7 +329,11 @@ export function AdminMembersPanel({
                     })
                   }
                 >
-                  <SelectTrigger aria-label={`Role for ${member.email}`}>
+                  <SelectTrigger
+                    size="lg"
+                    className="w-full"
+                    aria-label={`Role for ${member.email}`}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

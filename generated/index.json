@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-11T13:06:20.131Z",
+  "generated_at": "2026-05-19T17:46:50.307Z",
   "datasets": [
     {
       "id": "example-liver-ct-seg",
@@ -8,7 +8,16 @@
       "internal_storage_path": "/group/proj-data/example-liver-ct-seg/",
       "modality": "CT",
       "anatomy": "liver",
+      "body_regions": [
+        "abdomen"
+      ],
+      "anatomy_tags": [
+        "liver"
+      ],
       "task": "segmentation",
+      "annotation_types": [
+        "voxel_mask"
+      ],
       "access_level": "internal",
       "status": "active",
       "n_patients": 120,
@@ -17,6 +26,9 @@
       "dimensionality": "3D",
       "license": "Internal use only",
       "access_notes": "Contact the group data steward; no public download.",
+      "original_authors": "Illustrative upstream authors (synthetic example)",
+      "bibtex_citation": "@misc{example-liver-ct-seg,\n  title={Example liver CT benchmark},\n  note={Synthetic catalogue fixture}\n}",
+      "upstream_url": "https://example.com/datasets/example-liver-ct-seg",
       "created_by": "dataset-registry-ci",
       "created_at": "2026-05-07T12:00:00Z",
       "updated_at": "2026-05-07T12:00:00Z"

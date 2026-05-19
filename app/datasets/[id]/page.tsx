@@ -2,11 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   AsteriskIcon,
+  BookTextIcon,
   ChevronLeftIcon,
   DatabaseIcon,
   FolderIcon,
   ShieldCheckIcon,
 } from "lucide-react";
+
+import { BibtexCitationBlock } from "@/components/bibtex-citation-block";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -23,6 +26,14 @@ import {
   getCanMutateDataset,
   getCurrentCatalogueUser,
 } from "@/lib/catalogue/editor-session";
+import { vocabularyLabel } from "@/lib/catalogue/classification-vocabulary";
+import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
+import {
+  formatAnatomyTagLabel,
+  getDatasetAnnotationTypes,
+  getDatasetAnatomyTags,
+  getDatasetBodyRegions,
+} from "@/lib/catalogue/filters";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
@@ -68,9 +79,10 @@ export default async function DatasetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [dataset, user] = await Promise.all([
+  const [dataset, user, vocab] = await Promise.all([
     getDatasetEntryServer(id),
     getCurrentCatalogueUser(),
+    loadClassificationVocabularyLive(),
   ]);
   if (!dataset) {
     notFound();
@@ -81,6 +93,13 @@ export default async function DatasetDetailPage({
     user ? getStarredDatasetIds(user.id) : Promise.resolve([]),
   ]);
   const isStarred = starredDatasetIds.includes(dataset.id);
+  const bodyRegions = getDatasetBodyRegions(dataset, vocab);
+  const anatomyTags = getDatasetAnatomyTags(dataset);
+  const annotationTypes = getDatasetAnnotationTypes(dataset);
+  const hasProvenance =
+    Boolean(dataset.original_authors?.trim()) ||
+    Boolean(dataset.bibtex_citation?.trim()) ||
+    Boolean(dataset.upstream_url?.trim());
 
   return (
     <main className="flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12">
@@ -134,12 +153,31 @@ export default async function DatasetDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              <Badge variant="secondary">{dataset.modality}</Badge>
-              <Badge variant="outline">{dataset.anatomy}</Badge>
-              <Badge variant="outline">{dataset.task}</Badge>
-              <Badge variant="outline">{dataset.access_level}</Badge>
+              <Badge variant="secondary">
+                {vocabularyLabel(vocab, "modality", dataset.modality)}
+              </Badge>
+              {bodyRegions.map((region) => (
+                <Badge key={region} variant="outline">
+                  {vocabularyLabel(vocab, "body_region", region)}
+                </Badge>
+              ))}
+              <Badge variant="outline">
+                {vocabularyLabel(vocab, "task", dataset.task)}
+              </Badge>
+              {annotationTypes.map((annotation) => (
+                <Badge key={annotation} variant="outline">
+                  {vocabularyLabel(vocab, "annotation_type", annotation)}
+                </Badge>
+              ))}
+              <Badge variant="outline">
+                {vocabularyLabel(vocab, "access_level", dataset.access_level)}
+              </Badge>
               <Badge variant="outline">Created by {dataset.created_by}</Badge>
-              {dataset.status ? <Badge variant="secondary">{dataset.status}</Badge> : null}
+              {dataset.status ? (
+                <Badge variant="secondary">
+                  {vocabularyLabel(vocab, "status", dataset.status)}
+                </Badge>
+              ) : null}
             </div>
           </div>
         </header>
@@ -188,6 +226,47 @@ export default async function DatasetDetailPage({
             </CardContent>
           </Card>
 
+          {hasProvenance ? (
+            <Card size="sm">
+              <CardHeader className="border-b border-border">
+                <CardTitle className="flex items-center gap-2">
+                  <BookTextIcon aria-hidden />
+                  Provenance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 pt-4">
+                {dataset.original_authors?.trim() ? (
+                  <dl>
+                    <DetailRow
+                      label="Original author(s)"
+                      value={dataset.original_authors.trim()}
+                    />
+                  </dl>
+                ) : null}
+                {dataset.bibtex_citation?.trim() ? (
+                  <BibtexCitationBlock text={dataset.bibtex_citation.trim()} />
+                ) : null}
+                {dataset.upstream_url?.trim() ? (
+                  <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                    <dt className="text-[length:var(--text-xs)] font-medium text-muted-foreground">
+                      Upstream URL
+                    </dt>
+                    <dd className="min-w-0">
+                      <a
+                        href={dataset.upstream_url.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all font-mono text-[length:var(--text-sm)] text-brand underline-offset-2 hover:underline"
+                      >
+                        {dataset.upstream_url.trim()}
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card size="sm">
             <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2">
@@ -198,6 +277,24 @@ export default async function DatasetDetailPage({
             <CardContent className="pt-4">
               <dl className="grid gap-3">
                 <DetailRow label="Id" value={dataset.id} mono />
+                <DetailRow
+                  label="Anatomy tags"
+                  value={anatomyTags.map(formatAnatomyTagLabel).join(", ")}
+                />
+                <DetailRow
+                  label="Body regions"
+                  value={bodyRegions
+                    .map((region) => vocabularyLabel(vocab, "body_region", region))
+                    .join(", ")}
+                />
+                <DetailRow
+                  label="Annotations"
+                  value={annotationTypes
+                    .map((annotation) =>
+                      vocabularyLabel(vocab, "annotation_type", annotation),
+                    )
+                    .join(", ")}
+                />
                 <DetailRow label="Created by" value={dataset.created_by} />
                 <DetailRow label="Created" value={formatWhen(dataset.created_at)} />
                 <DetailRow label="Updated" value={formatWhen(dataset.updated_at)} />
@@ -211,7 +308,14 @@ export default async function DatasetDetailPage({
                   <DetailRow label="Images" value={dataset.n_images} />
                 ) : null}
                 {dataset.dimensionality ? (
-                  <DetailRow label="Dimensions" value={dataset.dimensionality} />
+                  <DetailRow
+                    label="Dimensions"
+                    value={vocabularyLabel(
+                      vocab,
+                      "dimensionality",
+                      dataset.dimensionality,
+                    )}
+                  />
                 ) : null}
               </dl>
             </CardContent>
