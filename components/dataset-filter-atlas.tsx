@@ -390,7 +390,7 @@ export function DatasetFilterAtlas({
         id: row.id,
         title: row.title,
         options: resolveBlueprintOptions(classificationVocabulary, row),
-        showAllVocabularyOptions: row.id !== "scale",
+        showAllVocabularyOptions: true,
       })),
     [classificationVocabulary],
   );
