@@ -36,6 +36,14 @@ import { NONE } from "@/lib/catalogue/dataset-form-options";
 import type { ClassificationVocabularyDoc } from "@/lib/catalogue/classification-vocabulary";
 import { normalizeAnatomyTag } from "@/lib/catalogue/filters";
 import { CopyClipboardButton } from "@/components/copy-clipboard-button";
+import {
+  CATALOGUE_SECTION_CARD_CN,
+  CATALOGUE_SECTION_DESC_CN,
+  CATALOGUE_SECTION_HEADER_CN,
+  CATALOGUE_SECTION_TITLE_ACCENT_CN,
+  CATALOGUE_SECTION_TITLE_CN,
+  FORM_TOGGLE_CHIP_CN,
+} from "@/lib/catalogue/catalogue-surface-styles";
 import { DATASET_EDITOR_FORM_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
 import { validateDatasetPayload } from "@/lib/catalogue/dataset-validator";
 import { assertDatasetSlug } from "@/lib/catalogue/path";
@@ -74,9 +82,6 @@ const TEXT_REQUIRED = [
   "anatomy",
 ] as const;
 type RequiredTextField = (typeof TEXT_REQUIRED)[number];
-
-const FORM_TOGGLE_CHIP_CN =
-  "!h-[34px] !min-h-0 min-w-0 shrink-0 rounded-full border border-border/60 bg-transparent px-[14px] text-[13px] font-normal text-foreground/65 shadow-none transition-all duration-150 hover:bg-muted/60 hover:border-border hover:text-foreground focus-visible:border-[#C4674F]/60 focus-visible:ring-0 focus-visible:shadow-[0_0_0_3px_rgba(196,103,79,0.08)] aria-pressed:border-[#C4674F]/40 aria-pressed:bg-[#C4674F]/10 aria-pressed:text-[#C4674F] aria-pressed:font-medium data-[pressed]:border-[#C4674F]/40 data-[pressed]:bg-[#C4674F]/10 data-[pressed]:text-[#C4674F] data-[pressed]:font-medium";
 
 function buildPayload(
   mode: "new" | "edit",
@@ -231,14 +236,39 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-      <div className="border-b border-border/30 px-7 pb-6 pt-7">
-        <div className="border-l-2 border-[#C4674F]/50 pl-3">
-          <div className="text-[13px] font-semibold tracking-[0.02em] text-foreground/80">
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]",
+        CATALOGUE_SECTION_CARD_CN,
+      )}
+    >
+      <div
+        className={cn(
+          "border-b border-border/30 px-7 pb-6 pt-7",
+          CATALOGUE_SECTION_HEADER_CN,
+        )}
+      >
+        <div
+          className={cn(
+            "border-l-2 border-[#C4674F]/50 pl-3",
+            CATALOGUE_SECTION_TITLE_ACCENT_CN,
+          )}
+        >
+          <div
+            className={cn(
+              "text-[13px] font-semibold tracking-[0.02em] text-foreground/80",
+              CATALOGUE_SECTION_TITLE_CN,
+            )}
+          >
             {title}
           </div>
         </div>
-        <p className="mt-0.5 text-[13px] italic leading-snug text-muted-foreground/60">
+        <p
+          className={cn(
+            "mt-0.5 text-[13px] italic leading-snug text-muted-foreground/60",
+            CATALOGUE_SECTION_DESC_CN,
+          )}
+        >
           {description}
         </p>
       </div>
@@ -896,7 +926,7 @@ export function DatasetEditorForm(props: EditorProps) {
               </FieldLabel>
               <div className="relative">
                 <FolderIcon
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/40"
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/40 dark:text-white/25"
                   aria-hidden
                 />
                 <Input
@@ -904,7 +934,7 @@ export function DatasetEditorForm(props: EditorProps) {
                   value={internal_storage_path}
                   onChange={(e) => setInternalStoragePath(e.target.value)}
                   onBlur={() => touch("internal_storage_path")}
-                  className="bg-muted/40 pl-9 font-mono text-sm"
+                  className="bg-muted/40 pl-9 font-mono text-sm dark:bg-[#252523]"
                   placeholder="/mnt/diag-data/datasets/lidc-idri"
                   aria-invalid={!!errors.internal_storage_path}
                   aria-describedby={
@@ -1161,7 +1191,7 @@ export function DatasetEditorForm(props: EditorProps) {
           </FieldGroup>
         </FormSection>
 
-        <div className="sticky bottom-0 z-20 border-t border-border/30 bg-background/80 py-4 backdrop-blur-sm">
+        <div className="sticky bottom-0 z-20 border-t border-border/30 bg-background/80 py-4 backdrop-blur-sm dark:border-white/[0.08] dark:bg-[#111110]/85 dark:backdrop-blur-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div
               className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
@@ -1169,7 +1199,7 @@ export function DatasetEditorForm(props: EditorProps) {
               aria-live="polite"
             >
               {pending ? (
-                <span className="text-xs font-medium text-muted-foreground/60">
+                <span className="text-xs font-medium text-muted-foreground/60 dark:text-white/40">
                   Saving dataset…
                 </span>
               ) : null}
@@ -1181,7 +1211,7 @@ export function DatasetEditorForm(props: EditorProps) {
               {!pending ? (
                 <div className="flex flex-wrap items-center gap-3">
                   {emptyRequiredCount > 0 ? (
-                    <span className="text-xs font-medium text-muted-foreground/60">
+                    <span className="text-xs font-medium text-muted-foreground/60 dark:text-white/40">
                       {emptyRequiredCount} fields remaining
                     </span>
                   ) : null}
@@ -1195,8 +1225,8 @@ export function DatasetEditorForm(props: EditorProps) {
                         className={cn(
                           "size-1 rounded-full transition-colors duration-200",
                           i < filledRequiredCount
-                            ? "bg-[#C4674F]"
-                            : "bg-border/40",
+                            ? "bg-[#C4674F] dark:bg-[#C4674F]/80"
+                            : "bg-border/40 dark:bg-white/15",
                         )}
                       />
                     ))}
@@ -1209,7 +1239,7 @@ export function DatasetEditorForm(props: EditorProps) {
                 href={cancelHref}
                 className={cn(
                   buttonVariants({ variant: "ghost" }),
-                  "text-muted-foreground/70 hover:bg-transparent hover:text-foreground/80",
+                  "text-muted-foreground/70 hover:bg-transparent hover:text-foreground/80 dark:text-white/50 dark:hover:text-white/80",
                   pending && "pointer-events-none opacity-55",
                 )}
               >

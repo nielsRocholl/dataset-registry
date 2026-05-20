@@ -38,6 +38,15 @@ import {
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
+import {
+  CATALOGUE_BACK_LINK_CN,
+  CATALOGUE_CHIP_CN,
+  CATALOGUE_DETAIL_LABEL_CN,
+  CATALOGUE_DETAIL_VALUE_CN,
+  CATALOGUE_DETAIL_VALUE_MONO_CN,
+  CATALOGUE_MASTHEAD_CARD_CN,
+  CATALOGUE_PAGE_MAIN_CN,
+} from "@/lib/catalogue/catalogue-surface-styles";
 import { cn } from "@/lib/utils";
 
 export const dynamicParams = true;
@@ -64,10 +73,22 @@ function DetailRow({
 }) {
   return (
     <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
-      <dt className="text-[length:var(--text-xs)] font-medium text-muted-foreground">
+      <dt
+        className={cn(
+          "text-[length:var(--text-xs)] font-medium text-muted-foreground",
+          CATALOGUE_DETAIL_LABEL_CN,
+        )}
+      >
         {label}
       </dt>
-      <dd className={mono ? "break-all font-mono text-[length:var(--text-sm)]" : "text-[length:var(--text-sm)]"}>
+      <dd
+        className={cn(
+          mono
+            ? "break-all font-mono text-[length:var(--text-sm)]"
+            : "text-[length:var(--text-sm)]",
+          mono ? CATALOGUE_DETAIL_VALUE_MONO_CN : CATALOGUE_DETAIL_VALUE_CN,
+        )}
+      >
         {value}
       </dd>
     </div>
@@ -103,27 +124,40 @@ export default async function DatasetDetailPage({
     Boolean(dataset.upstream_url?.trim());
 
   return (
-    <main className="flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12">
+    <main
+      className={cn(
+        "flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12",
+        CATALOGUE_PAGE_MAIN_CN,
+      )}
+    >
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-7 pb-16">
         <Link
           href="/datasets"
-          className="group inline-flex w-fit items-center gap-2 text-[length:var(--text-sm)] font-medium text-muted-foreground outline-none transition-[color] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+          className={cn(
+            "group inline-flex w-fit items-center gap-2 text-[length:var(--text-sm)] font-medium text-muted-foreground outline-none transition-[color] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30",
+            CATALOGUE_BACK_LINK_CN,
+          )}
         >
           <ChevronLeftIcon className="size-4 shrink-0 transition-transform duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] group-hover:-translate-x-0.5" aria-hidden />
           Back to datasets
         </Link>
 
-        <header className="rounded-3xl border border-border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-7 sm:py-7">
+        <header
+          className={cn(
+            "rounded-3xl border border-border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-7 sm:py-7",
+            CATALOGUE_MASTHEAD_CARD_CN,
+          )}
+        >
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-4">
                 <AsteriskIcon className="mt-1 size-9 shrink-0 text-brand" aria-hidden />
                 <div className="min-w-0">
-                  <p className="ui-kicker">Dataset</p>
-                  <h1 className="ui-title mt-2 text-[length:var(--text-3xl)]">
+                  <p className="ui-kicker dark:text-white/35">Dataset</p>
+                  <h1 className="ui-title mt-2 text-[length:var(--text-3xl)] dark:text-white/85">
                     {dataset.name}
                   </h1>
-                  <p className="ui-copy mt-3 text-[length:var(--text-sm)]">
+                  <p className="ui-copy mt-3 text-[length:var(--text-sm)] dark:text-white/40">
                     {dataset.short_description}
                   </p>
                 </div>
@@ -154,28 +188,30 @@ export default async function DatasetDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              <Badge variant="secondary">
+              <Badge variant="secondary" className={CATALOGUE_CHIP_CN}>
                 {vocabularyLabel(vocab, "modality", dataset.modality)}
               </Badge>
               {bodyRegions.map((region) => (
-                <Badge key={region} variant="outline">
+                <Badge key={region} variant="outline" className={CATALOGUE_CHIP_CN}>
                   {vocabularyLabel(vocab, "body_region", region)}
                 </Badge>
               ))}
-              <Badge variant="outline">
+              <Badge variant="outline" className={CATALOGUE_CHIP_CN}>
                 {vocabularyLabel(vocab, "task", dataset.task)}
               </Badge>
               {annotationTypes.map((annotation) => (
-                <Badge key={annotation} variant="outline">
+                <Badge key={annotation} variant="outline" className={CATALOGUE_CHIP_CN}>
                   {vocabularyLabel(vocab, "annotation_type", annotation)}
                 </Badge>
               ))}
-              <Badge variant="outline">
+              <Badge variant="outline" className={CATALOGUE_CHIP_CN}>
                 {vocabularyLabel(vocab, "access_level", dataset.access_level)}
               </Badge>
-              <Badge variant="outline">Created by {dataset.created_by}</Badge>
+              <Badge variant="outline" className={CATALOGUE_CHIP_CN}>
+                Created by {dataset.created_by}
+              </Badge>
               {dataset.status ? (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className={CATALOGUE_CHIP_CN}>
                   {vocabularyLabel(vocab, "status", dataset.status)}
                 </Badge>
               ) : null}
@@ -183,7 +219,7 @@ export default async function DatasetDetailPage({
           </div>
         </header>
 
-        <div className="grid gap-3">
+        <div className="grid gap-3 dark:gap-5">
           <Card size="sm">
             <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2">
@@ -194,11 +230,21 @@ export default async function DatasetDetailPage({
             <CardContent className="pt-4">
               <dl className="grid gap-3">
                 <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
-                  <dt className="text-[length:var(--text-xs)] font-medium text-muted-foreground">
+                  <dt
+                    className={cn(
+                      "text-[length:var(--text-xs)] font-medium text-muted-foreground",
+                      CATALOGUE_DETAIL_LABEL_CN,
+                    )}
+                  >
                     Storage path
                   </dt>
                   <dd className="flex min-w-0 items-start gap-0.5">
-                    <span className="min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)]">
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)]",
+                        CATALOGUE_DETAIL_VALUE_MONO_CN,
+                      )}
+                    >
                       {dataset.internal_storage_path}
                     </span>
                     <CopyClipboardButton
@@ -230,7 +276,7 @@ export default async function DatasetDetailPage({
               {dataset.access_notes ? (
                 <>
                   <Separator />
-                  <p className="ui-copy whitespace-pre-wrap text-[length:var(--text-sm)]">
+                  <p className="ui-copy whitespace-pre-wrap text-[length:var(--text-sm)] dark:text-white/40">
                     {dataset.access_notes}
                   </p>
                 </>
@@ -260,7 +306,12 @@ export default async function DatasetDetailPage({
                 ) : null}
                 {dataset.upstream_url?.trim() ? (
                   <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
-                    <dt className="text-[length:var(--text-xs)] font-medium text-muted-foreground">
+                    <dt
+                      className={cn(
+                        "text-[length:var(--text-xs)] font-medium text-muted-foreground",
+                        CATALOGUE_DETAIL_LABEL_CN,
+                      )}
+                    >
                       Upstream URL
                     </dt>
                     <dd className="flex min-w-0 items-start gap-0.5">
@@ -268,7 +319,10 @@ export default async function DatasetDetailPage({
                         href={dataset.upstream_url.trim()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)] text-brand underline-offset-2 hover:underline"
+                        className={cn(
+                          "min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)] text-brand underline-offset-2 hover:underline",
+                          CATALOGUE_DETAIL_VALUE_MONO_CN,
+                        )}
                       >
                         {dataset.upstream_url.trim()}
                       </a>

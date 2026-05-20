@@ -33,7 +33,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATALOGUE_FORM_FIELD_BODY_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
+import { CATALOGUE_FORM_FIELD_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
+import {
+  CATALOGUE_LIST_ROW_CN,
+  CATALOGUE_SECTION_CARD_CN,
+  CATALOGUE_SECTION_DESC_CN,
+  CATALOGUE_SECTION_HEADER_CN,
+  CATALOGUE_SECTION_TITLE_ACCENT_CN,
+  CATALOGUE_SECTION_TITLE_CN,
+} from "@/lib/catalogue/catalogue-surface-styles";
 import type { AdminMember } from "@/lib/catalogue/admin-members";
 import type { CatalogueRole } from "@/lib/catalogue/user-profile";
 import { cn } from "@/lib/utils";
@@ -187,22 +195,47 @@ export function AdminMembersPanel({
 
   return (
     <div className="flex flex-col gap-7">
-      <section className="flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-        <div className="border-b border-border/30 px-7 pb-6 pt-7">
-          <div className="border-l-2 border-[#C4674F]/50 pl-3">
+      <section
+        className={cn(
+          "flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]",
+          CATALOGUE_SECTION_CARD_CN,
+        )}
+      >
+        <div
+          className={cn(
+            "border-b border-border/30 px-7 pb-6 pt-7",
+            CATALOGUE_SECTION_HEADER_CN,
+          )}
+        >
+          <div
+            className={cn(
+              "border-l-2 border-[#C4674F]/50 pl-3",
+              CATALOGUE_SECTION_TITLE_ACCENT_CN,
+            )}
+          >
             <div className="flex items-center gap-2">
               <UserPlusIcon className="size-4 shrink-0 text-brand" aria-hidden />
-              <span className="text-[13px] font-semibold tracking-[0.02em] text-foreground/80">
+              <span
+                className={cn(
+                  "text-[13px] font-semibold tracking-[0.02em] text-foreground/80",
+                  CATALOGUE_SECTION_TITLE_CN,
+                )}
+              >
                 Add catalogue member
               </span>
             </div>
           </div>
-          <p className="mt-2 text-[13px] italic leading-snug text-muted-foreground/60">
+          <p
+            className={cn(
+              "mt-2 text-[13px] italic leading-snug text-muted-foreground/60",
+              CATALOGUE_SECTION_DESC_CN,
+            )}
+          >
             Pre-approve an email before the person signs in.
           </p>
         </div>
 
-        <div className={cn("p-7", CATALOGUE_FORM_FIELD_BODY_SCOPE)}>
+        <div className={cn("p-7", CATALOGUE_FORM_FIELD_SCOPE)}>
           <FieldGroup className="gap-5">
             <div className="grid gap-x-5 gap-y-5 md:grid-cols-[1.2fr_1fr_9rem_auto] md:items-end">
               <Field>
@@ -279,10 +312,10 @@ export function AdminMembersPanel({
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3 px-1">
-          <p className="text-[length:var(--text-sm)] text-muted-foreground">
+          <p className="text-[length:var(--text-sm)] text-muted-foreground dark:text-white/40">
             {members.length} {members.length === 1 ? "member" : "members"}
           </p>
-          <p className="text-[length:var(--text-xs)] text-muted-foreground">
+          <p className="text-[length:var(--text-xs)] text-muted-foreground dark:text-white/40">
             {adminCount} {adminCount === 1 ? "admin" : "admins"}
           </p>
         </div>
@@ -292,7 +325,8 @@ export function AdminMembersPanel({
               key={member.email}
               className={cn(
                 "rounded-2xl border border-border/40 bg-card px-3.5 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.03)] transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:border-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]",
-                CATALOGUE_FORM_FIELD_BODY_SCOPE,
+                CATALOGUE_LIST_ROW_CN,
+                CATALOGUE_FORM_FIELD_SCOPE,
               )}
             >
               <div className="grid gap-x-5 gap-y-3 lg:grid-cols-[1fr_13rem_8rem_auto] lg:items-center">

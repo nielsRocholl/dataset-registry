@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import { AsteriskIcon } from "lucide-react";
 
+import {
+  CATALOGUE_MASTHEAD_CARD_CN,
+  CATALOGUE_SECTION_HEADER_CN,
+} from "@/lib/catalogue/catalogue-surface-styles";
 import { cn } from "@/lib/utils";
 
 type DatasetEditorPageHeaderProps = {
@@ -26,31 +30,39 @@ export function DatasetEditorPageHeader({
 }: DatasetEditorPageHeaderProps) {
   const textBlock = (
     <div className="min-w-0 flex-1">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground/60">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-white/35">
         {kicker}
       </p>
-      <h1 className="font-display mt-2 text-4xl font-[450] leading-tight tracking-[-0.02em] text-foreground">
+      <h1 className="font-display mt-2 text-4xl font-[450] leading-tight tracking-[-0.02em] text-foreground dark:text-white/85">
         {title}
       </h1>
       <p
         className={cn(
-          "mt-3 text-[15px] leading-[1.6] text-muted-foreground/70",
+          "mt-3 text-[15px] leading-[1.6] text-muted-foreground/70 dark:text-white/40",
           subtitleClassName ?? "max-w-[480px]",
         )}
       >
         {subtitle}
       </p>
       {footnote ? (
-        <div className="mt-2 text-xs text-muted-foreground/60">{footnote}</div>
+        <div className="mt-2 text-xs text-muted-foreground/60 dark:text-white/38">
+          {footnote}
+        </div>
       ) : null}
     </div>
   );
 
   return (
-    <header className="overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-soft)]">
+    <header
+      className={cn(
+        "overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-soft)]",
+        CATALOGUE_MASTHEAD_CARD_CN,
+      )}
+    >
       <div
         className={cn(
           "border-b border-border/30 px-7 py-9 sm:px-8",
+          CATALOGUE_SECTION_HEADER_CN,
           actions
             ? "flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-x-8"
             : "flex items-start gap-4",

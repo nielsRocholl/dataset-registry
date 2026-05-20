@@ -22,14 +22,28 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
+import {
+  CATALOGUE_CHIP_AUTHOR_CN,
+  CATALOGUE_CHIP_CN,
+  CATALOGUE_PAGE_MAIN_CN,
+  CATALOGUE_BROWSE_ROW_HOVER_CN,
+  CATALOGUE_SEARCH_ACTION_CN,
+  CATALOGUE_SECTION_CARD_CN,
+} from "@/lib/catalogue/catalogue-surface-styles";
 import { cn } from "@/lib/utils";
 
 const ACTION_LINK_CLASSES =
   "inline-flex shrink-0 cursor-pointer items-center justify-center whitespace-nowrap outline-none select-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 min-h-10 gap-2 px-4 text-sm font-medium rounded-md";
 
-const DATASET_CARD_BADGE =
-  "h-6 shrink-0 border-border/60 px-2 text-xs font-medium text-foreground/65 rounded-md border";
-const DATASET_CARD_BADGE_AUTHOR = cn(DATASET_CARD_BADGE, "bg-muted/50 italic");
+const DATASET_CARD_BADGE = cn(
+  "h-6 shrink-0 border-border/60 px-2 text-xs font-medium text-foreground/65 rounded-md border",
+  CATALOGUE_CHIP_CN,
+);
+const DATASET_CARD_BADGE_AUTHOR = cn(
+  DATASET_CARD_BADGE,
+  "bg-muted/50 italic",
+  CATALOGUE_CHIP_AUTHOR_CN,
+);
 
 type DatasetBrowsePagination = {
   page: number;
@@ -179,7 +193,12 @@ export function DatasetBrowse({
   }
 
   return (
-    <main className="flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12">
+    <main
+      className={cn(
+        "flex flex-1 flex-col px-4 py-8 sm:px-8 lg:px-12",
+        CATALOGUE_PAGE_MAIN_CN,
+      )}
+    >
       <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-7 pb-16">
         <DatasetEditorPageHeader
           kicker={kicker}
@@ -195,6 +214,7 @@ export function DatasetBrowse({
                   buttonVariants({ variant: "outline" }),
                   ACTION_LINK_CLASSES,
                   "border border-input bg-background hover:bg-muted/60",
+                  CATALOGUE_SEARCH_ACTION_CN,
                   "h-10 min-h-10",
                 )}
               >
@@ -220,14 +240,19 @@ export function DatasetBrowse({
         />
 
         {datasets.length === 0 ? (
-          <div className="w-full rounded-2xl border border-border/40 bg-card px-5 py-10 text-center shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-            <p className="text-[length:var(--text-sm)] text-muted-foreground">
+          <div
+            className={cn(
+              "w-full rounded-2xl border border-border/40 bg-card px-5 py-10 text-center shadow-[0_1px_4px_rgba(0,0,0,0.04)]",
+              CATALOGUE_SECTION_CARD_CN,
+            )}
+          >
+            <p className="text-[length:var(--text-sm)] text-muted-foreground dark:text-white/40">
               {emptyMessage}
             </p>
           </div>
         ) : (
           <>
-            <ul className="flex w-full flex-col gap-1.5">
+            <ul className="flex w-full flex-col gap-2.5">
               {datasets.map((dataset) => {
                 const footerLine = [dataset.id, dataset.anatomy, scaleLabel(dataset)]
                   .filter(Boolean)
@@ -236,10 +261,9 @@ export function DatasetBrowse({
                   <li key={dataset.id}>
                   <div
                     className={cn(
-                      "relative rounded-2xl border border-border/40 bg-card outline-none shadow-[0_1px_4px_rgba(0,0,0,0.03)]",
-                      "transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)]",
-                      "hover:-translate-y-px hover:border-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]",
-                      "group",
+                      "group relative rounded-2xl border border-border/40 bg-card outline-none shadow-[0_1px_4px_rgba(0,0,0,0.03)]",
+                      CATALOGUE_SECTION_CARD_CN,
+                      CATALOGUE_BROWSE_ROW_HOVER_CN,
                     )}
                   >
                     <Link
@@ -249,10 +273,10 @@ export function DatasetBrowse({
                       <div className="flex flex-wrap items-start gap-3">
                         <div className="flex min-w-0 grow items-start gap-3">
                           <DatabaseIcon
-                            className="mt-0.5 size-4 shrink-0 text-brand"
+                            className="mt-0.5 size-4 shrink-0 text-brand transition-transform duration-[var(--duration-normal)] [transition-timing-function:var(--ease-out-expo)] group-hover:scale-110"
                             aria-hidden
                           />
-                          <h2 className="line-clamp-2 min-w-0 text-base font-medium text-foreground">
+                          <h2 className="line-clamp-2 min-w-0 text-base font-medium text-foreground transition-colors duration-[var(--duration-fast)] group-hover:text-foreground dark:text-white/90 dark:group-hover:text-white">
                             {dataset.name}
                           </h2>
                         </div>
@@ -278,12 +302,12 @@ export function DatasetBrowse({
                         </div>
                       </div>
                       {dataset.short_description ? (
-                        <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground/70">
+                        <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground/70 dark:text-white/40">
                           {dataset.short_description}
                         </p>
                       ) : null}
                       <div
-                        className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground/50"
+                        className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground/50 dark:text-[#a8c4a2]/70"
                         title={footerLine}
                       >
                         <span className="line-clamp-1 min-w-0">{footerLine}</span>

@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 
+import { CATALOGUE_FORM_FIELD_DARK_SCOPE } from "@/lib/catalogue/catalogue-surface-styles";
+
 /** Label, helper, input, textarea, select trigger — matches dataset register form. */
 export const CATALOGUE_FORM_FIELD_BODY_SCOPE = cn(
   "[&_[data-slot=field-label]]:mb-1.5 [&_[data-slot=field-label]]:text-[13px] [&_[data-slot=field-label]]:font-medium [&_[data-slot=field-label]]:text-foreground/75",
@@ -14,8 +16,14 @@ export const CATALOGUE_FORM_FIELD_BODY_SCOPE = cn(
   "[&_[data-slot=select-trigger]:enabled]:focus-visible:ring-0 [&_[data-slot=select-trigger]:enabled]:focus-visible:border-[#C4674F]/60 [&_[data-slot=select-trigger]:enabled]:focus-visible:shadow-[0_0_0_3px_rgba(196,103,79,0.08)]",
 );
 
+/** Light scope + dark field surfaces for forms with inputs. */
+export const CATALOGUE_FORM_FIELD_SCOPE = cn(
+  CATALOGUE_FORM_FIELD_BODY_SCOPE,
+  CATALOGUE_FORM_FIELD_DARK_SCOPE,
+);
+
 /** Full dataset editor `<form>` shell: vertical rhythm + field scope. */
 export const DATASET_EDITOR_FORM_SCOPE = cn(
-  "dataset-editor-scope flex flex-col gap-[16px]",
-  CATALOGUE_FORM_FIELD_BODY_SCOPE,
+  "dataset-editor-scope flex flex-col gap-[16px] dark:gap-6",
+  CATALOGUE_FORM_FIELD_SCOPE,
 );

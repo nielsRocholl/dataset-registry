@@ -18,7 +18,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { CATALOGUE_FORM_FIELD_BODY_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
+import { CATALOGUE_FORM_FIELD_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
+import {
+  CATALOGUE_CHIP_CN,
+  CATALOGUE_SECTION_CARD_CN,
+  CATALOGUE_SECTION_DESC_CN,
+  CATALOGUE_SECTION_HEADER_CN,
+  CATALOGUE_SECTION_TITLE_ACCENT_CN,
+  CATALOGUE_SECTION_TITLE_CN,
+} from "@/lib/catalogue/catalogue-surface-styles";
 import type {
   ClassificationFieldId,
   ClassificationVocabularyDoc,
@@ -229,25 +237,50 @@ export function AdminClassificationPanel({
 
   return (
     <>
-      <section className="flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-        <div className="border-b border-border/30 p-7 pb-6 pt-7">
-          <div className="border-l-2 border-[#C4674F]/50 pl-3">
+      <section
+        className={cn(
+          "flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)]",
+          CATALOGUE_SECTION_CARD_CN,
+        )}
+      >
+        <div
+          className={cn(
+            "border-b border-border/30 p-7 pb-6 pt-7",
+            CATALOGUE_SECTION_HEADER_CN,
+          )}
+        >
+          <div
+            className={cn(
+              "border-l-2 border-[#C4674F]/50 pl-3",
+              CATALOGUE_SECTION_TITLE_ACCENT_CN,
+            )}
+          >
             <div className="flex items-center gap-2">
               <Settings2Icon
                 className="size-4 shrink-0 text-muted-foreground"
                 aria-hidden
               />
-              <span className="text-[13px] font-semibold tracking-[0.02em] text-foreground/80">
+              <span
+                className={cn(
+                  "text-[13px] font-semibold tracking-[0.02em] text-foreground/80",
+                  CATALOGUE_SECTION_TITLE_CN,
+                )}
+              >
                 Classification vocabulary
               </span>
             </div>
           </div>
-          <p className="mt-2 text-[12px] italic leading-snug text-muted-foreground/55">
+          <p
+            className={cn(
+              "mt-2 text-[12px] italic leading-snug text-muted-foreground/55",
+              CATALOGUE_SECTION_DESC_CN,
+            )}
+          >
             Manage the controlled options available in dataset forms.
           </p>
         </div>
 
-        <div className={cn("flex flex-col p-7", CATALOGUE_FORM_FIELD_BODY_SCOPE)}>
+        <div className={cn("flex flex-col p-7", CATALOGUE_FORM_FIELD_SCOPE)}>
           <nav
             className="-mb-px mb-6 flex flex-wrap gap-1 border-b border-border/30 pb-0"
             aria-label="Classification field"
@@ -265,8 +298,8 @@ export function AdminClassificationPanel({
                   className={cn(
                     "cursor-pointer rounded-t-md px-3 py-2 text-[13px] transition-colors",
                     active
-                      ? "-mb-px border-b-2 border-[#C4674F] bg-transparent font-medium text-foreground"
-                      : "text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground/80",
+                      ? "-mb-px border-b-2 border-[#C4674F] bg-transparent font-medium text-foreground dark:border-[#C4674F] dark:text-white/85"
+                      : "text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground/80 dark:text-white/45 dark:hover:bg-white/[0.04] dark:hover:text-white/70",
                   )}
                 >
                   {classificationFieldHumanTitle(id)}
@@ -346,21 +379,22 @@ export function AdminClassificationPanel({
                     key={row.value}
                     className={cn(
                       "flex h-8 max-w-full shrink-0 items-center gap-2 rounded-full border border-border/60 bg-transparent pl-3 pr-1 text-[13px] transition-opacity duration-200",
+                      CATALOGUE_CHIP_CN,
                       enteredSlug === row.value &&
                         "animate-in fade-in duration-300",
                       isExiting && "opacity-0",
                     )}
                   >
-                    <span className="truncate font-mono text-foreground/80">
+                    <span className="truncate font-mono text-foreground/80 dark:text-[#a8c4a2]">
                       {row.value}
                     </span>
-                    <span className="shrink-0 text-muted-foreground/50">
+                    <span className="shrink-0 text-muted-foreground/50 dark:text-white/30">
                       ·
                     </span>
-                    <span className="min-w-0 truncate text-[12px] text-muted-foreground/60">
+                    <span className="min-w-0 truncate text-[12px] text-muted-foreground/60 dark:text-white/50">
                       {row.label}
                     </span>
-                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground/45">
+                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground/45 dark:text-white/38">
                       {row.usageCount}
                     </span>
                     <button
