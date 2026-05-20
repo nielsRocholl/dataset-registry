@@ -1,14 +1,10 @@
 {
-  "updated_at": "2026-05-20T07:16:28.483Z",
+  "updated_at": "2026-05-20T07:20:04.903Z",
   "fields": {
     "modality": [
       {
         "value": "CT",
         "label": "CT"
-      },
-      {
-        "value": "microscopy",
-        "label": "Microscopy"
       },
       {
         "value": "mixed",
@@ -29,10 +25,6 @@
       {
         "value": "PET",
         "label": "PET"
-      },
-      {
-        "value": "text",
-        "label": "Text"
       },
       {
         "value": "ultrasound",
