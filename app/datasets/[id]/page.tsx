@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { BibtexCitationBlock } from "@/components/bibtex-citation-block";
+import { CopyClipboardButton } from "@/components/copy-clipboard-button";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -192,11 +193,22 @@ export default async function DatasetDetailPage({
             </CardHeader>
             <CardContent className="pt-4">
               <dl className="grid gap-3">
-                <DetailRow
-                  label="Storage path"
-                  value={dataset.internal_storage_path}
-                  mono
-                />
+                <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                  <dt className="text-[length:var(--text-xs)] font-medium text-muted-foreground">
+                    Storage path
+                  </dt>
+                  <dd className="flex min-w-0 items-start gap-0.5">
+                    <span className="min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)]">
+                      {dataset.internal_storage_path}
+                    </span>
+                    <CopyClipboardButton
+                      text={dataset.internal_storage_path}
+                      label="Copy storage path"
+                      iconOnly
+                      className="mt-px"
+                    />
+                  </dd>
+                </div>
               </dl>
             </CardContent>
           </Card>
@@ -251,15 +263,21 @@ export default async function DatasetDetailPage({
                     <dt className="text-[length:var(--text-xs)] font-medium text-muted-foreground">
                       Upstream URL
                     </dt>
-                    <dd className="min-w-0">
+                    <dd className="flex min-w-0 items-start gap-0.5">
                       <a
                         href={dataset.upstream_url.trim()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="break-all font-mono text-[length:var(--text-sm)] text-brand underline-offset-2 hover:underline"
+                        className="min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)] text-brand underline-offset-2 hover:underline"
                       >
                         {dataset.upstream_url.trim()}
                       </a>
+                      <CopyClipboardButton
+                        text={dataset.upstream_url.trim()}
+                        label="Copy upstream URL"
+                        iconOnly
+                        className="mt-px"
+                      />
                     </dd>
                   </div>
                 ) : null}
