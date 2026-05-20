@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 
-import { DatasetBrowse } from "@/components/dataset-browse";
+import { DatasetBrowseLive } from "@/components/dataset-browse-live";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
+
+export const dynamic = "force-dynamic";
 
 export default async function MyDatasetsPage() {
   const user = await getCurrentCatalogueUser();
@@ -21,11 +23,12 @@ export default async function MyDatasetsPage() {
   );
 
   return (
-    <DatasetBrowse
+    <DatasetBrowseLive
       canCreate
-      datasets={mine}
+      initialDatasets={datasets}
       generatedAt={generatedAt}
       starredDatasetIds={starredDatasetIds}
+      createdByUserId={user.id}
       kicker="Account"
       title="My datasets"
       description={`${mine.length} ${

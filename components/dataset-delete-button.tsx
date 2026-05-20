@@ -46,7 +46,7 @@ export function DatasetDeleteButton({
         return;
       }
       setOpen(false);
-      router.push("/datasets");
+      router.replace("/datasets");
       router.refresh();
     } finally {
       setPending(false);

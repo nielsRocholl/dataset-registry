@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 
-import { DatasetBrowse } from "@/components/dataset-browse";
+import { DatasetBrowseLive } from "@/components/dataset-browse-live";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
+
+export const dynamic = "force-dynamic";
 
 export default async function StarredDatasetsPage() {
   const user = await getCurrentCatalogueUser();
@@ -17,18 +19,18 @@ export default async function StarredDatasetsPage() {
       getStarredDatasetIds(user.id),
     ]);
   const starredSet = new Set(starredDatasetIds);
-  const starredDatasets = datasets.filter((dataset) => starredSet.has(dataset.id));
 
   return (
-    <DatasetBrowse
+    <DatasetBrowseLive
       canCreate
-      datasets={starredDatasets}
+      initialDatasets={datasets}
       generatedAt={generatedAt}
       starredDatasetIds={starredDatasetIds}
+      starredOnlyIds={starredDatasetIds}
       kicker="Starred"
       title="Starred datasets"
-      description={`${starredDatasets.length} ${
-        starredDatasets.length === 1 ? "dataset" : "datasets"
+      description={`${starredSet.size} ${
+        starredSet.size === 1 ? "dataset" : "datasets"
       } saved for quick access.`}
       emptyMessage="No starred datasets yet."
     />

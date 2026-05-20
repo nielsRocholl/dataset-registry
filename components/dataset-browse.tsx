@@ -37,6 +37,8 @@ type DatasetBrowsePagination = {
   pathname: string;
 };
 
+export type { DatasetBrowsePagination };
+
 type DatasetBrowseProps = {
   canCreate: boolean;
   datasets: DatasetCatalogueEntry[];

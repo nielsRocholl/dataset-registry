@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 
 import {
   assertCatalogueRead,
@@ -12,6 +13,7 @@ import {
   validateDatasetPayload,
 } from "@/lib/catalogue/dataset-validator";
 import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
+import { CATALOGUE_INDEX_CACHE_TAG } from "@/lib/catalogue/fetch-index-live";
 import { clearStarsForDataset } from "@/lib/catalogue/stars";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import {
@@ -180,6 +182,7 @@ export async function PUT(req: Request, ctx: RouteCtx) {
       ? `catalogue: update dataset ${id}`
       : `catalogue: add dataset ${id}`;
     const result = await putBlobFile(repo, path, branch, b64, message, existing?.sha);
+    revalidateTag(CATALOGUE_INDEX_CACHE_TAG, { expire: 0 });
     return NextResponse.json({
       committed: result.commit.sha,
       contentSha: result.content.sha,
@@ -252,6 +255,7 @@ export async function DELETE(req: Request, ctx: RouteCtx) {
       `catalogue: delete dataset ${id}`,
     );
     const starsCleared = await clearStarsForDataset(id);
+    revalidateTag(CATALOGUE_INDEX_CACHE_TAG, { expire: 0 });
     return NextResponse.json({
       committed: result.commit.sha,
       descriptionCommitted: descriptionCommit,

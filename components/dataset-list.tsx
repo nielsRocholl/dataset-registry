@@ -27,6 +27,7 @@ import {
   getDatasetBodyRegions,
   type DatasetFilterState,
 } from "@/lib/catalogue/filters";
+import { useLiveCatalogueIndex } from "@/lib/catalogue/use-live-catalogue-index";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import { cn } from "@/lib/utils";
 
@@ -183,11 +184,15 @@ function TypingDatasetTitle() {
 }
 
 export function DatasetList({
-  datasets,
-  generatedAt,
+  datasets: initialDatasets,
+  generatedAt: initialGeneratedAt,
   classificationVocabulary: initialVocabulary,
   starredDatasetIds = [],
 }: DatasetListProps) {
+  const { datasets, generatedAt } = useLiveCatalogueIndex(
+    initialDatasets,
+    initialGeneratedAt,
+  );
   const [query, setQuery] = useState("");
   const [filterExcludeMode, setFilterExcludeMode] = useState(false);
   const [filters, setFilters] = useState<DatasetFilterState>({

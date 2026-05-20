@@ -10,6 +10,8 @@ import {
   parseRepository,
 } from "@/lib/github/contents";
 
+export const CATALOGUE_INDEX_CACHE_TAG = "catalogue-index-live";
+
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
@@ -75,9 +77,17 @@ async function fetchCatalogueIndexFromGitHub(): Promise<CatalogueIndex> {
 
 const fetchCatalogueIndexFromGitHubCached = unstable_cache(
   fetchCatalogueIndexFromGitHub,
-  ["catalogue-index-live"],
-  { revalidate: 30 },
+  ["catalogue-index-blob"],
+  { revalidate: 30, tags: [CATALOGUE_INDEX_CACHE_TAG] },
 );
+
+/** Bypass Next data cache — use after catalogue writes or client refresh. */
+export async function fetchCatalogueIndexUncached(): Promise<CatalogueIndex> {
+  if (!process.env.GITHUB_TOKEN?.trim() || !process.env.GITHUB_REPOSITORY?.trim()) {
+    return getCatalogueIndex();
+  }
+  return fetchCatalogueIndexFromGitHub();
+}
 
 /**
  * Build catalogue index from GitHub `datasets/*.json`. Falls back to

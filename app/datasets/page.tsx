@@ -1,7 +1,9 @@
-import { DatasetBrowse } from "@/components/dataset-browse";
+import { DatasetBrowseLive } from "@/components/dataset-browse-live";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
+
+export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
 
@@ -29,14 +31,11 @@ export default async function DatasetsPage({
   let page = parsePositiveInt(sp.page, 1);
   page = Math.max(1, Math.min(page, totalPages));
 
-  const start = (page - 1) * PAGE_SIZE;
-  const slice = datasets.slice(start, start + PAGE_SIZE);
-
   const starredDatasetIds = user ? await getStarredDatasetIds(user.id) : [];
   return (
-    <DatasetBrowse
+    <DatasetBrowseLive
       canCreate={Boolean(user)}
-      datasets={slice}
+      initialDatasets={datasets}
       generatedAt={generatedAt}
       starredDatasetIds={starredDatasetIds}
       totalCount={totalCount}

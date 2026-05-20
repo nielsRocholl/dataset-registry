@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,12 +13,12 @@ import {
   ShieldCheckIcon,
   UserRoundIcon,
 } from "lucide-react";
-import { useState } from "react";
 
 import { Tooltip } from "@base-ui/react/tooltip";
 
 import { CatalogueCollapsedTooltip } from "@/components/catalogue-collapsed-tooltip";
 import { Button } from "@/components/ui/button";
+import { useLiveCatalogueIndex } from "@/lib/catalogue/use-live-catalogue-index";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import type { CatalogueUser } from "@/lib/catalogue/editor-session";
@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 type CatalogueShellProps = {
   children: ReactNode;
   datasets?: DatasetCatalogueEntry[];
+  generatedAt?: string;
+  starredDatasetIds?: string[];
   starredDatasets?: DatasetCatalogueEntry[];
   canCreate?: boolean;
   currentUser?: CatalogueUser | null;
@@ -44,8 +46,10 @@ function initials(label: string) {
 
 export function CatalogueShell({
   children,
-  datasets = [],
-  starredDatasets = [],
+  datasets: initialDatasets = [],
+  generatedAt: initialGeneratedAt = "",
+  starredDatasetIds = [],
+  starredDatasets: initialStarredDatasets = [],
   canCreate = false,
   currentUser = null,
   className,
@@ -54,8 +58,22 @@ export function CatalogueShell({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const recent = datasets.slice(0, 10);
-  const starred = starredDatasets.slice(0, 6);
+  const { datasets: liveDatasets } = useLiveCatalogueIndex(
+    initialDatasets,
+    initialGeneratedAt,
+  );
+  const starred = useMemo(() => {
+    if (starredDatasetIds.length === 0) {
+      return initialStarredDatasets.slice(0, 6);
+    }
+    const allow = new Set(starredDatasetIds);
+    return liveDatasets.filter((d) => allow.has(d.id)).slice(0, 6);
+  }, [liveDatasets, starredDatasetIds, initialStarredDatasets]);
+  const recent = liveDatasets.slice(0, 10);
+  const starredTotal =
+    starredDatasetIds.length > 0
+      ? starredDatasetIds.length
+      : initialStarredDatasets.length;
   const accountName = currentUser?.displayName ?? "DIAG member";
   const accountSubline = currentUser?.isAdmin ? "Admin" : "Dataset catalogue";
 
@@ -287,7 +305,7 @@ export function CatalogueShell({
                       No starred datasets
                     </p>
                   )}
-                  {starredDatasets.length > starred.length ? (
+                  {starredTotal > starred.length ? (
                     <Link
                       href="/datasets/starred"
                       className="rounded-xl px-2.5 py-1.5 text-[length:var(--text-sm)] leading-snug text-muted-foreground outline-none transition-[background-color,color] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-quart)] hover:bg-muted hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring/35"
