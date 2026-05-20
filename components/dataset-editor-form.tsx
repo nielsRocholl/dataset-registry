@@ -83,6 +83,22 @@ const TEXT_REQUIRED = [
 ] as const;
 type RequiredTextField = (typeof TEXT_REQUIRED)[number];
 
+function normalizeModalities(raw: unknown): Modality[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((m): m is Modality => typeof m === "string" && m.length > 0);
+  }
+  if (typeof raw === "string" && raw.length > 0) return [raw];
+  return [];
+}
+
+function normalizeTasks(raw: unknown): Task[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((t): t is Task => typeof t === "string" && t.length > 0);
+  }
+  if (typeof raw === "string" && raw.length > 0) return [raw];
+  return [];
+}
+
 function buildPayload(
   mode: "new" | "edit",
   values: {
@@ -90,11 +106,12 @@ function buildPayload(
     name: string;
     short_description: string;
     internal_storage_path: string;
-    modality: Modality;
+    modality: Modality[];
     anatomy: string;
     body_regions: BodyRegion[];
     anatomy_tags: string;
-    task: Task;
+    task: Task[];
+    is_longitudinal: boolean;
     annotation_types: AnnotationType[];
     access_level: AccessLevel;
     status: string;
@@ -156,6 +173,7 @@ function buildPayload(
   if (values.dimensionality && values.dimensionality !== NONE) {
     o.dimensionality = values.dimensionality as Dimensionality;
   }
+  if (values.is_longitudinal) o.is_longitudinal = true;
   if (values.license.trim()) o.license = values.license.trim();
   if (values.access_notes.trim()) o.access_notes = values.access_notes.trim();
   if (values.original_authors.trim()) {
@@ -300,8 +318,10 @@ export function DatasetEditorForm(props: EditorProps) {
   const [internal_storage_path, setInternalStoragePath] = useState(
     initial?.internal_storage_path ?? "",
   );
-  const [modality, setModality] = useState<string>(
-    initial?.modality ?? fallbackModality,
+  const [modality, setModality] = useState<Modality[]>(
+    normalizeModalities(
+      initial?.modality ?? (fallbackModality ? [fallbackModality] : []),
+    ),
   );
   const [anatomy, setAnatomy] = useState(initial?.anatomy ?? "");
   const [body_regions, setBodyRegions] = useState<BodyRegion[]>(
@@ -310,7 +330,12 @@ export function DatasetEditorForm(props: EditorProps) {
   const [anatomy_tags, setAnatomyTags] = useState(
     initial?.anatomy_tags?.join(", ") ?? "",
   );
-  const [task, setTask] = useState<Task>(initial?.task ?? fallbackTask);
+  const [task, setTask] = useState<Task[]>(
+    normalizeTasks(initial?.task ?? (fallbackTask ? [fallbackTask] : [])),
+  );
+  const [is_longitudinal, setIsLongitudinal] = useState(
+    initial?.is_longitudinal === true,
+  );
   const [annotation_types, setAnnotationTypes] = useState<AnnotationType[]>(
     initial?.annotation_types ?? [],
   );
@@ -347,6 +372,8 @@ export function DatasetEditorForm(props: EditorProps) {
   const [touched, setTouched] = useState<
     Partial<Record<RequiredTextField, boolean>>
   >({});
+  const [taskTouched, setTaskTouched] = useState(false);
+  const [modalityTouched, setModalityTouched] = useState(false);
 
   const [pending, setPending] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -359,11 +386,12 @@ export function DatasetEditorForm(props: EditorProps) {
     setName("");
     setShortDescription("");
     setInternalStoragePath("");
-    setModality(fallbackModality);
+    setModality(fallbackModality ? [fallbackModality] : []);
     setAnatomy("");
     setBodyRegions([]);
     setAnatomyTags("");
-    setTask(fallbackTask);
+    setTask(fallbackTask ? [fallbackTask] : []);
+    setIsLongitudinal(false);
     setAnnotationTypes([]);
     setAccessLevel(fallbackAccess);
     setStatus(NONE);
@@ -380,6 +408,8 @@ export function DatasetEditorForm(props: EditorProps) {
     setMarkdown("");
     setInitialMarkdown("");
     setTouched({});
+    setTaskTouched(false);
+    setModalityTouched(false);
   }
 
   function touch(field: RequiredTextField) {
@@ -415,6 +445,10 @@ export function DatasetEditorForm(props: EditorProps) {
     return result;
   }, [touched, fieldValues, mode]);
 
+  const taskError = taskTouched && task.length === 0 ? "Select at least one task." : null;
+  const modalityError =
+    modalityTouched && modality.length === 0 ? "Select at least one modality." : null;
+
   const upstreamUrlError = useMemo(() => {
     if (!touched_upstream_url) return null;
     if (upstream_url.trim() === "" || isValidOptionalHttpUrl(upstream_url)) {
@@ -424,7 +458,10 @@ export function DatasetEditorForm(props: EditorProps) {
   }, [touched_upstream_url, upstream_url]);
 
   const hasFieldErrors =
-    Object.keys(errors).length > 0 || upstreamUrlError !== null;
+    Object.keys(errors).length > 0 ||
+    upstreamUrlError !== null ||
+    taskError !== null ||
+    modalityError !== null;
 
   // Count empty required fields (for submit button hint)
   const emptyRequiredCount = useMemo(() => {
@@ -523,6 +560,11 @@ export function DatasetEditorForm(props: EditorProps) {
 
     // Touch all required fields to reveal any inline errors
     touchAll();
+    setTaskTouched(true);
+    setModalityTouched(true);
+
+    const taskEmpty = task.length === 0;
+    const modalityEmpty = modality.length === 0;
 
     // Check for any required field violations first
     const anyEmpty = TEXT_REQUIRED.some((f) => {
@@ -533,7 +575,7 @@ export function DatasetEditorForm(props: EditorProps) {
     const upstreamInvalid =
       upstream_url.trim() !== "" && !isValidOptionalHttpUrl(upstream_url);
 
-    if (anyEmpty || upstreamInvalid) {
+    if (anyEmpty || upstreamInvalid || taskEmpty || modalityEmpty) {
       requestAnimationFrame(() => {
         const firstInvalid = formRef.current?.querySelector<HTMLElement>(
           "[aria-invalid='true'], [data-invalid='true']",
@@ -575,6 +617,7 @@ export function DatasetEditorForm(props: EditorProps) {
       body_regions,
       anatomy_tags,
       task,
+      is_longitudinal,
       annotation_types,
       access_level,
       status,
@@ -758,52 +801,70 @@ export function DatasetEditorForm(props: EditorProps) {
           description="Keep the tags short and predictable so the catalogue stays scannable."
         >
           <FieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
-            <Field>
+            <Field
+              className="sm:col-span-2"
+              data-invalid={!!modalityError || undefined}
+            >
               <FieldLabel>
                 Modality <Req />
               </FieldLabel>
-              <Select
-                items={modalityItems}
+              <ToggleGroup
+                multiple
+                aria-label="Imaging modalities"
+                className="flex w-full flex-wrap gap-2"
                 value={modality}
-                onValueChange={(val) => setModality(val ?? modality)}
+                onValueChange={(values) => setModality(values as Modality[])}
               >
-                <SelectTrigger size="lg" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {modalityItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                {modalityItems.map((item) => (
+                  <ToggleGroupItem
+                    key={item.value}
+                    value={item.value}
+                    className={FORM_TOGGLE_CHIP_CN}
+                  >
+                    {item.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              {modalityError ? (
+                <FieldError>{modalityError}</FieldError>
+              ) : (
+                <FieldDescription>
+                  Select all imaging modalities present in this dataset.
+                </FieldDescription>
+              )}
             </Field>
 
-            <Field>
+            <Field
+              className="sm:col-span-2"
+              data-invalid={!!taskError || undefined}
+            >
               <FieldLabel>
                 Task <Req />
               </FieldLabel>
-              <Select
-                items={taskItems}
+              <ToggleGroup
+                multiple
+                aria-label="Research tasks"
+                className="flex w-full flex-wrap gap-2"
                 value={task}
-                onValueChange={(val) => setTask(val ?? task)}
+                onValueChange={(values) => setTask(values as Task[])}
               >
-                <SelectTrigger size="lg" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {taskItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                {taskItems.map((item) => (
+                  <ToggleGroupItem
+                    key={item.value}
+                    value={item.value}
+                    className={FORM_TOGGLE_CHIP_CN}
+                  >
+                    {item.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              {taskError ? (
+                <FieldError>{taskError}</FieldError>
+              ) : (
+                <FieldDescription>
+                  Select all research tasks this dataset supports.
+                </FieldDescription>
+              )}
             </Field>
 
             <Field className="sm:col-span-2">
@@ -1138,6 +1199,27 @@ export function DatasetEditorForm(props: EditorProps) {
               </Select>
             </Field>
           </FieldGroup>
+          <Field className="mt-5">
+            <FieldLabel>Study design</FieldLabel>
+            <ToggleGroup
+              aria-label="Study design"
+              className="flex w-full flex-wrap gap-2"
+              value={is_longitudinal ? ["longitudinal"] : []}
+              onValueChange={(vals) =>
+                setIsLongitudinal(vals.includes("longitudinal"))
+              }
+            >
+              <ToggleGroupItem
+                value="longitudinal"
+                className={FORM_TOGGLE_CHIP_CN}
+              >
+                Longitudinal / follow-up
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <FieldDescription>
+              Repeated scans or follow-up timepoints per patient or subject.
+            </FieldDescription>
+          </Field>
         </FormSection>
 
         <FormSection

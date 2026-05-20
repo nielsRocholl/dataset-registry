@@ -39,10 +39,16 @@
       "description": "Canonical path on the group storage server; see docs/metadata_guidelines.md."
     },
     "modality": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 64,
-      "description": "Controlled value from config/classification-vocabulary.json (modality)."
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "description": "Controlled value from config/classification-vocabulary.json (modality)."
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "One or more imaging modalities in this dataset."
     },
     "anatomy": {
       "type": "string",
@@ -72,10 +78,16 @@
       "description": "Optional normalized organ or structure tags, e.g. liver, lung, brain."
     },
     "task": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 64,
-      "description": "Controlled value from config/classification-vocabulary.json (task)."
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "description": "Controlled value from config/classification-vocabulary.json (task)."
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "One or more research tasks this dataset supports."
     },
     "annotation_types": {
       "type": "array",
@@ -108,6 +120,10 @@
       "minLength": 1,
       "maxLength": 16,
       "description": "Controlled value from vocabulary (dimensionality)."
+    },
+    "is_longitudinal": {
+      "type": "boolean",
+      "description": "True when the dataset includes repeated scans or follow-up timepoints per subject."
     },
     "license": {
       "type": "string",

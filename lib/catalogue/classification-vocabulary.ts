@@ -102,11 +102,7 @@ export function vocabularyLabel(
 }
 
 /** Single-string fields validated against vocab. */
-const SINGLE_FIELDS: ClassificationFieldId[] = [
-  "modality",
-  "task",
-  "access_level",
-];
+const SINGLE_FIELDS: ClassificationFieldId[] = ["access_level"];
 
 export type DatasetPayloadRecord = Record<string, unknown>;
 
@@ -121,12 +117,30 @@ export function vocabularyValidationErrorsForDataset(
     const allow = allowedValueSet(doc, f);
     if (!allow.has(v)) errs.push(`${f} "${v}" is not in the catalogue vocabulary`);
   }
+  const modalities = data.modality;
+  if (Array.isArray(modalities)) {
+    const allow = allowedValueSet(doc, "modality");
+    for (const item of modalities) {
+      if (typeof item === "string" && !allow.has(item)) {
+        errs.push(`modality entry "${item}" is not in the catalogue vocabulary`);
+      }
+    }
+  }
   const br = data.body_regions;
   if (Array.isArray(br)) {
     const allow = allowedValueSet(doc, "body_region");
     for (const item of br) {
       if (typeof item === "string" && !allow.has(item)) {
         errs.push(`body_regions entry "${item}" is not in the catalogue vocabulary`);
+      }
+    }
+  }
+  const tasks = data.task;
+  if (Array.isArray(tasks)) {
+    const allow = allowedValueSet(doc, "task");
+    for (const item of tasks) {
+      if (typeof item === "string" && !allow.has(item)) {
+        errs.push(`task entry "${item}" is not in the catalogue vocabulary`);
       }
     }
   }
@@ -163,10 +177,10 @@ export function countClassificationValueUsage(
   for (const d of datasets) {
     switch (field) {
       case "modality":
-        if (d.modality === value) n++;
+        if (Array.isArray(d.modality) && d.modality.includes(value)) n++;
         break;
       case "task":
-        if (d.task === value) n++;
+        if (Array.isArray(d.task) && d.task.includes(value)) n++;
         break;
       case "access_level":
         if (d.access_level === value) n++;

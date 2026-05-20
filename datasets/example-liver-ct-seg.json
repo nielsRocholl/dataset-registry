@@ -3,7 +3,7 @@
   "name": "Example liver CT segmentation benchmark",
   "short_description": "Curated abdominal CT subset for benchmarking liver organ segmentation; synthetic-style metadata for catalogue testing only.",
   "internal_storage_path": "/group/proj-data/example-liver-ct-seg/",
-  "modality": "CT",
+  "modality": ["CT"],
   "anatomy": "liver",
   "body_regions": [
     "abdomen"
@@ -11,7 +11,7 @@
   "anatomy_tags": [
     "liver"
   ],
-  "task": "segmentation",
+  "task": ["segmentation"],
   "annotation_types": [
     "voxel_mask"
   ],

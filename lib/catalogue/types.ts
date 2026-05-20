@@ -12,11 +12,12 @@ export type DatasetCatalogueEntry = {
   name: string;
   short_description: string;
   internal_storage_path: string;
-  modality: Modality;
+  modality: Modality[];
   anatomy: string;
   body_regions?: BodyRegion[];
   anatomy_tags?: string[];
-  task: Task;
+  task: Task[];
+  is_longitudinal?: boolean;
   annotation_types?: AnnotationType[];
   access_level: AccessLevel;
   created_by: string;

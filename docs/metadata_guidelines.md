@@ -40,9 +40,9 @@ Example: `/group/proj-data/example-liver-ct-seg/`
 
 ### `modality`
 
-Controlled vocabulary (`config/classification-vocabulary.json`); defaults are seeded for common imaging modalities. Use the catalogue editor selects—do not invent values that are absent from vocabulary.
+Controlled vocabulary (`config/classification-vocabulary.json`); defaults are seeded for common imaging modalities. Select all modalities present in the dataset. Add entries via admin if missing.
 
-Example: `"CT"`
+Example: `["CT", "MRI"]`
 
 ### `anatomy`
 
@@ -65,9 +65,9 @@ Example: `["liver"]`
 
 ### `task`
 
-Controlled vocabulary (`segmentation`, `detection`, etc.—see seeded file). Add entries via admin if missing.
+Controlled vocabulary (`segmentation`, `detection`, etc.—see seeded file). Select one or more tasks when a dataset supports multiple research goals. Add entries via admin if missing.
 
-Example: `"segmentation"`
+Example: `["segmentation", "registration"]`
 
 ### `annotation_types` (optional)
 
@@ -92,6 +92,12 @@ Example: `12800`
 ### `dimensionality`
 
 Example: `"3D"`
+
+### `is_longitudinal` (optional)
+
+Set to `true` when the dataset includes repeated scans or follow-up timepoints per subject. Complements `n_studies` (a count) but does not replace it.
+
+Example: `true`
 
 ## Access (required + optional)
 

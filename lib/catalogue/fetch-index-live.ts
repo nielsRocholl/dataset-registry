@@ -23,9 +23,7 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
     "name",
     "short_description",
     "internal_storage_path",
-    "modality",
     "anatomy",
-    "task",
     "access_level",
     "created_by",
     "created_at",
@@ -33,6 +31,28 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
   ] as const;
   for (const k of required) {
     if (!(k in raw) || typeof raw[k] !== "string") return null;
+  }
+  const modality = raw.modality;
+  if (
+    !Array.isArray(modality) ||
+    modality.length === 0 ||
+    modality.some((m) => typeof m !== "string" || m.length === 0)
+  ) {
+    return null;
+  }
+  const task = raw.task;
+  if (
+    !Array.isArray(task) ||
+    task.length === 0 ||
+    task.some((t) => typeof t !== "string" || t.length === 0)
+  ) {
+    return null;
+  }
+  if (
+    raw.is_longitudinal !== undefined &&
+    typeof raw.is_longitudinal !== "boolean"
+  ) {
+    return null;
   }
   return raw as unknown as DatasetCatalogueEntry;
 }

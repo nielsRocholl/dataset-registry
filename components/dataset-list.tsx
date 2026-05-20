@@ -25,6 +25,8 @@ import {
   getDatasetAnnotationTypes,
   getDatasetAnatomyTags,
   getDatasetBodyRegions,
+  getDatasetModalities,
+  getDatasetTasks,
   type DatasetFilterState,
 } from "@/lib/catalogue/filters";
 import { useLiveCatalogueIndex } from "@/lib/catalogue/use-live-catalogue-index";
@@ -46,6 +48,7 @@ function scaleLabel(dataset: DatasetCatalogueEntry) {
     dataset.n_studies != null ? `${dataset.n_studies} studies` : null,
     dataset.n_images != null ? `${dataset.n_images} images` : null,
     dataset.dimensionality,
+    dataset.is_longitudinal ? "longitudinal" : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : "Metadata entry";
 }
@@ -59,8 +62,16 @@ function formatGeneratedAt(iso: string) {
   return `${time.toISOString().slice(0, 19).replace("T", " ")} UTC`;
 }
 
+function primaryModalityForIcon(modalities: string[]): string {
+  if (modalities.includes("mixed")) return "mixed";
+  if (modalities.includes("microscopy")) return "microscopy";
+  if (modalities.includes("pathology")) return "pathology";
+  return modalities[0] ?? "";
+}
+
 function modalityIcon(dataset: DatasetCatalogueEntry): MedicalIconName {
-  switch (dataset.modality) {
+  const primary = primaryModalityForIcon(getDatasetModalities(dataset));
+  switch (primary) {
     case "XRay":
       return "xray";
     case "ultrasound":
@@ -99,8 +110,12 @@ function metadataBadges(
   vocabulary: ClassificationVocabularyDoc,
 ) {
   return [
-    vocabularyLabel(vocabulary, "modality", dataset.modality),
-    vocabularyLabel(vocabulary, "task", dataset.task),
+    ...getDatasetModalities(dataset).map((mod) =>
+      vocabularyLabel(vocabulary, "modality", mod),
+    ),
+    ...getDatasetTasks(dataset).map((task) =>
+      vocabularyLabel(vocabulary, "task", task),
+    ),
     primaryAnnotationLabel(dataset, vocabulary),
     primaryBodyLabel(dataset, vocabulary),
     vocabularyLabel(vocabulary, "access_level", dataset.access_level),
@@ -110,6 +125,7 @@ function metadataBadges(
     dataset.status
       ? vocabularyLabel(vocabulary, "status", dataset.status)
       : null,
+    dataset.is_longitudinal ? "Longitudinal" : null,
   ].filter((value): value is string => Boolean(value));
 }
 

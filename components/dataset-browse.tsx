@@ -21,6 +21,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { getDatasetModalities, getDatasetTasks, formatAnatomyTagLabel } from "@/lib/catalogue/filters";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import {
   CATALOGUE_CHIP_AUTHOR_CN,
@@ -72,6 +73,7 @@ function scaleLabel(dataset: DatasetCatalogueEntry) {
     dataset.n_patients != null ? `${dataset.n_patients} patients` : null,
     dataset.n_studies != null ? `${dataset.n_studies} studies` : null,
     dataset.dimensionality,
+    dataset.is_longitudinal ? "longitudinal" : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : "Metadata entry";
 }
@@ -281,12 +283,29 @@ export function DatasetBrowse({
                           </h2>
                         </div>
                         <div className="flex flex-wrap content-start gap-1.5">
-                          <Badge variant="outline" className={DATASET_CARD_BADGE}>
-                            {dataset.modality}
-                          </Badge>
-                          <Badge variant="outline" className={DATASET_CARD_BADGE}>
-                            {dataset.task}
-                          </Badge>
+                          {getDatasetModalities(dataset).map((mod) => (
+                            <Badge
+                              key={mod}
+                              variant="outline"
+                              className={DATASET_CARD_BADGE}
+                            >
+                              {formatAnatomyTagLabel(mod)}
+                            </Badge>
+                          ))}
+                          {getDatasetTasks(dataset).map((task) => (
+                            <Badge
+                              key={task}
+                              variant="outline"
+                              className={DATASET_CARD_BADGE}
+                            >
+                              {formatAnatomyTagLabel(task)}
+                            </Badge>
+                          ))}
+                          {dataset.is_longitudinal ? (
+                            <Badge variant="outline" className={DATASET_CARD_BADGE}>
+                              Longitudinal
+                            </Badge>
+                          ) : null}
                           <Badge variant="outline" className={DATASET_CARD_BADGE}>
                             {dataset.access_level}
                           </Badge>

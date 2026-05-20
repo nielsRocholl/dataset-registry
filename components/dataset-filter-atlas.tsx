@@ -22,6 +22,7 @@ import {
   getAnatomyFilterOptions,
   getFilterOptionCount,
   modalityFilterPairs,
+  longitudinalFilterOptions,
   scaleFilterOptions,
   statusFilterPairs,
   taskFilterPairs,
@@ -59,6 +60,7 @@ const GROUP_BLUEPRINT = [
     optionsKey: "dimensionality" as const,
   },
   { id: "statuses" as const, title: "Lifecycle", optionsKey: "status" as const },
+  { id: "longitudinal" as const, title: "Study design", optionsKey: null },
   { id: "scale" as const, title: "Scale", optionsKey: null },
 ];
 
@@ -79,6 +81,7 @@ function resolveBlueprintOptions(
   row: BlueprintRow,
 ): FilterOption[] {
   if (row.id === "scale") return scaleFilterOptions;
+  if (row.id === "longitudinal") return longitudinalFilterOptions;
   if (row.id === "annotationTypes") return annotationFilterPairs(vocabulary);
   if (!row.optionsKey) return [];
   switch (row.optionsKey) {

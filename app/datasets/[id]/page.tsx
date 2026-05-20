@@ -34,6 +34,8 @@ import {
   getDatasetAnnotationTypes,
   getDatasetAnatomyTags,
   getDatasetBodyRegions,
+  getDatasetModalities,
+  getDatasetTasks,
 } from "@/lib/catalogue/filters";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
@@ -118,6 +120,8 @@ export default async function DatasetDetailPage({
   const bodyRegions = getDatasetBodyRegions(dataset, vocab);
   const anatomyTags = getDatasetAnatomyTags(dataset);
   const annotationTypes = getDatasetAnnotationTypes(dataset);
+  const tasks = getDatasetTasks(dataset);
+  const modalities = getDatasetModalities(dataset);
   const hasProvenance =
     Boolean(dataset.original_authors?.trim()) ||
     Boolean(dataset.bibtex_citation?.trim()) ||
@@ -188,17 +192,26 @@ export default async function DatasetDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              <Badge variant="secondary" className={CATALOGUE_CHIP_CN}>
-                {vocabularyLabel(vocab, "modality", dataset.modality)}
-              </Badge>
+              {modalities.map((mod) => (
+                <Badge key={mod} variant="secondary" className={CATALOGUE_CHIP_CN}>
+                  {vocabularyLabel(vocab, "modality", mod)}
+                </Badge>
+              ))}
               {bodyRegions.map((region) => (
                 <Badge key={region} variant="outline" className={CATALOGUE_CHIP_CN}>
                   {vocabularyLabel(vocab, "body_region", region)}
                 </Badge>
               ))}
-              <Badge variant="outline" className={CATALOGUE_CHIP_CN}>
-                {vocabularyLabel(vocab, "task", dataset.task)}
-              </Badge>
+              {tasks.map((task) => (
+                <Badge key={task} variant="outline" className={CATALOGUE_CHIP_CN}>
+                  {vocabularyLabel(vocab, "task", task)}
+                </Badge>
+              ))}
+              {dataset.is_longitudinal ? (
+                <Badge variant="outline" className={CATALOGUE_CHIP_CN}>
+                  Longitudinal
+                </Badge>
+              ) : null}
               {annotationTypes.map((annotation) => (
                 <Badge key={annotation} variant="outline" className={CATALOGUE_CHIP_CN}>
                   {vocabularyLabel(vocab, "annotation_type", annotation)}
@@ -360,6 +373,18 @@ export default async function DatasetDetailPage({
                     .join(", ")}
                 />
                 <DetailRow
+                  label="Modalities"
+                  value={modalities
+                    .map((mod) => vocabularyLabel(vocab, "modality", mod))
+                    .join(", ")}
+                />
+                <DetailRow
+                  label="Tasks"
+                  value={tasks
+                    .map((task) => vocabularyLabel(vocab, "task", task))
+                    .join(", ")}
+                />
+                <DetailRow
                   label="Annotations"
                   value={annotationTypes
                     .map((annotation) =>
@@ -388,6 +413,9 @@ export default async function DatasetDetailPage({
                       dataset.dimensionality,
                     )}
                   />
+                ) : null}
+                {dataset.is_longitudinal ? (
+                  <DetailRow label="Longitudinal" value="Yes" />
                 ) : null}
               </dl>
             </CardContent>

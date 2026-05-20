@@ -47,10 +47,30 @@ function vocabAllow(field) {
 function vocabErrors(data) {
   /** @type {string[]} */
   const out = [];
-  for (const f of ["modality", "task", "access_level"]) {
+  for (const f of ["access_level"]) {
     const v = data[f];
     if (typeof v !== "string") continue;
     if (!vocabAllow(f).has(v)) out.push(`${f}: unknown value`);
+  }
+  const modalities = data.modality;
+  if (Array.isArray(modalities)) {
+    const ok = vocabAllow("modality");
+    for (const item of modalities) {
+      if (typeof item === "string" && !ok.has(item)) {
+        out.push("modality: unknown value");
+        break;
+      }
+    }
+  }
+  const tasks = data.task;
+  if (Array.isArray(tasks)) {
+    const ok = vocabAllow("task");
+    for (const item of tasks) {
+      if (typeof item === "string" && !ok.has(item)) {
+        out.push("task: unknown value");
+        break;
+      }
+    }
   }
   const br = data.body_regions;
   if (Array.isArray(br)) {

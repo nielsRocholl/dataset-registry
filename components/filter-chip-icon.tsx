@@ -7,7 +7,9 @@ import {
   Building2,
   CheckCircle2,
   Circle,
+  CalendarClock,
   CircleOff,
+  Route,
   Dot,
   FileText,
   FlaskConical,
@@ -105,11 +107,15 @@ export function getFilterChipIcon(
           return chip(Move);
         case "reconstruction":
           return chip(Rotate3d);
+        case "tracking":
+          return chip(Route);
         case "other":
         default:
           return chip(MoreHorizontal);
       }
     }
+    case "longitudinal":
+      return chip(CalendarClock);
     case "scale": {
       switch (value) {
         case "patients_100":

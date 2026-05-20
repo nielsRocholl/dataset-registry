@@ -18,6 +18,7 @@ export type FilterGroupId =
   | "accessLevels"
   | "statuses"
   | "dimensionalities"
+  | "longitudinal"
   | "scale";
 
 export type DatasetFilterState = Record<FilterGroupId, string[]>;
@@ -41,6 +42,7 @@ export const emptyDatasetFilters: DatasetFilterState = {
   accessLevels: [],
   statuses: [],
   dimensionalities: [],
+  longitudinal: [],
   scale: [],
 };
 
@@ -91,6 +93,10 @@ export function dimensionalityFilterPairs(
 ): FilterOption[] {
   return vocabularyToFilterPairs(vocab, "dimensionality");
 }
+
+export const longitudinalFilterOptions: FilterOption[] = [
+  { label: "Longitudinal / follow-up", value: "longitudinal" },
+];
 
 export const scaleFilterOptions: FilterOption[] = [
   { label: "100+ patients", value: "patients_100" },
@@ -202,6 +208,13 @@ export function getDatasetAnatomyTags(dataset: DatasetCatalogueEntry) {
   return fallback ? [fallback] : [];
 }
 
+export function getDatasetModalities(dataset: DatasetCatalogueEntry): string[] {
+  if (Array.isArray(dataset.modality)) {
+    return dataset.modality.filter((m) => typeof m === "string" && m.length > 0);
+  }
+  return [];
+}
+
 export function getDatasetBodyRegions(
   dataset: DatasetCatalogueEntry,
   vocab?: ClassificationVocabularyDoc,
@@ -213,7 +226,7 @@ export function getDatasetBodyRegions(
       dataset.anatomy,
       dataset.name,
       dataset.short_description,
-      dataset.modality,
+      ...getDatasetModalities(dataset),
       ...getDatasetAnatomyTags(dataset),
     ].join(" "),
   );
@@ -226,7 +239,9 @@ export function getDatasetBodyRegions(
 
   if (
     regions.length === 0 &&
-    (dataset.modality === "microscopy" || dataset.modality === "pathology")
+    getDatasetModalities(dataset).some(
+      (m) => m === "microscopy" || m === "pathology",
+    )
   ) {
     regions.push("tissue_cell");
   }
@@ -243,22 +258,41 @@ export function getDatasetBodyRegions(
   return [fallback] as BodyRegion[];
 }
 
+export function getDatasetTasks(dataset: DatasetCatalogueEntry): string[] {
+  if (Array.isArray(dataset.task)) {
+    return dataset.task.filter((t) => typeof t === "string" && t.length > 0);
+  }
+  return [];
+}
+
+function inferAnnotationTypesForTask(
+  task: string,
+  dimensionality: DatasetCatalogueEntry["dimensionality"],
+): AnnotationType[] {
+  if (task === "segmentation") {
+    if (dimensionality === "2D") return ["mask_2d"];
+    if (dimensionality === "3D") return ["voxel_mask"];
+    return ["voxel_mask", "mask_2d"];
+  }
+  if (task === "detection") return ["bounding_box"];
+  if (task === "classification") return ["image_label", "study_label"];
+  if (task === "registration" || task === "reconstruction") return ["none"];
+  return ["other"];
+}
+
 export function getDatasetAnnotationTypes(
   dataset: DatasetCatalogueEntry,
 ): AnnotationType[] {
   if (dataset.annotation_types?.length) return dataset.annotation_types;
 
-  if (dataset.task === "segmentation") {
-    if (dataset.dimensionality === "2D") return ["mask_2d"];
-    if (dataset.dimensionality === "3D") return ["voxel_mask"];
-    return ["voxel_mask", "mask_2d"];
-  }
-  if (dataset.task === "detection") return ["bounding_box"];
-  if (dataset.task === "classification") return ["image_label", "study_label"];
-  if (dataset.task === "registration" || dataset.task === "reconstruction") {
-    return ["none"];
-  }
-  return ["other"];
+  const tasks = getDatasetTasks(dataset);
+  if (tasks.length === 0) return ["other"];
+
+  return unique(
+    tasks.flatMap((task) =>
+      inferAnnotationTypesForTask(task, dataset.dimensionality),
+    ),
+  );
 }
 
 function hasAnyAnnotation(dataset: DatasetCatalogueEntry) {
@@ -296,7 +330,7 @@ function datasetMatchesGroup(
 
   switch (groupId) {
     case "modalities":
-      return selected.includes(dataset.modality);
+      return intersects(getDatasetModalities(dataset), selected);
     case "bodyRegions":
       return intersects(getDatasetBodyRegions(dataset, vocab), selected);
     case "anatomyTags":
@@ -309,7 +343,7 @@ function datasetMatchesGroup(
       });
     }
     case "tasks":
-      return selected.includes(dataset.task);
+      return intersects(getDatasetTasks(dataset), selected);
     case "accessLevels":
       return selected.includes(dataset.access_level);
     case "statuses":
@@ -320,6 +354,8 @@ function datasetMatchesGroup(
         : false;
     case "scale":
       return selected.some((value) => matchesScaleValue(dataset, value));
+    case "longitudinal":
+      return selected.includes("longitudinal") && dataset.is_longitudinal === true;
   }
 }
 
@@ -334,15 +370,18 @@ export function datasetMatchesText(
   const annotationTypes = getDatasetAnnotationTypes(dataset);
   const bodyRegions = getDatasetBodyRegions(dataset, vocab);
   const anatomyTags = getDatasetAnatomyTags(dataset);
+  const tasks = getDatasetTasks(dataset);
+  const modalities = getDatasetModalities(dataset);
   const blob = [
     dataset.id,
     dataset.name,
     dataset.short_description,
     dataset.anatomy,
-    dataset.modality,
-    vocabularyLabel(vocab, "modality", dataset.modality),
-    dataset.task,
-    vocabularyLabel(vocab, "task", dataset.task),
+    ...modalities,
+    ...modalities.map((value) => vocabularyLabel(vocab, "modality", value)),
+    ...tasks,
+    ...tasks.map((value) => vocabularyLabel(vocab, "task", value)),
+    dataset.is_longitudinal ? "longitudinal" : "",
     dataset.access_level,
     vocabularyLabel(vocab, "access_level", dataset.access_level),
     dataset.dimensionality,
