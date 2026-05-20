@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-20T07:29:19.201Z",
+  "updated_at": "2026-05-20T19:21:21.703Z",
   "fields": {
     "modality": [
       {
@@ -63,6 +63,10 @@
       {
         "value": "segmentation",
         "label": "Segmentation"
+      },
+      {
+        "value": "tracking",
+        "label": "Tracking"
       }
     ],
     "body_region": [
