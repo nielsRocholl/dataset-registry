@@ -53,7 +53,11 @@ async function classificationVocabularyFromGitHubUncached(): Promise<Classificat
     if (!blob) return classificationVocabularyFromDisk();
     const parsed: unknown = JSON.parse(blob.text);
     const doc = parseClassificationVocabularyJson(parsed);
-    return doc ?? classificationVocabularyFromDisk();
+    if (doc) {
+      mirrorVocabularyDiskIfStale(blob.text);
+      return doc;
+    }
+    return classificationVocabularyFromDisk();
   } catch {
     return classificationVocabularyFromDisk();
   }
@@ -64,6 +68,11 @@ const classificationVocabularyFromGitHubCached = unstable_cache(
   ["classification-vocabulary-blob"],
   { revalidate: 30, tags: [CLASSIFICATION_VOCABULARY_CACHE_TAG] },
 );
+
+/** Bypass Next data cache — use after admin vocabulary writes or client refresh. */
+export async function loadClassificationVocabularyUncached(): Promise<ClassificationVocabularyDoc> {
+  return classificationVocabularyFromGitHubUncached();
+}
 
 /** Live vocabulary: GitHub contents when credentials exist, otherwise local checkout. */
 export async function loadClassificationVocabularyLive(): Promise<ClassificationVocabularyDoc> {
@@ -107,8 +116,25 @@ export async function writeClassificationVocabularyToGitHub(
     message,
     existingSha,
   );
+  syncClassificationVocabularyToDisk(bodyUtf8);
   return {
     commitSha: result.commit.sha,
     contentSha: result.content.sha,
   };
+}
+
+/** Keep checkout in sync after GitHub commits (admin API does not pull otherwise). */
+export function syncClassificationVocabularyToDisk(bodyUtf8: string): void {
+  const abs = path.join(process.cwd(), CLASSIFICATION_VOCABULARY_BLOB_PATH);
+  fs.writeFileSync(abs, bodyUtf8, "utf8");
+}
+
+function mirrorVocabularyDiskIfStale(bodyUtf8: string): void {
+  const abs = path.join(process.cwd(), CLASSIFICATION_VOCABULARY_BLOB_PATH);
+  try {
+    if (fs.readFileSync(abs, "utf8") === bodyUtf8) return;
+  } catch {
+    /* missing local file */
+  }
+  syncClassificationVocabularyToDisk(bodyUtf8);
 }

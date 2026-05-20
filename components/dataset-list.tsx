@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { AsteriskIcon, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -184,7 +185,7 @@ function TypingDatasetTitle() {
 export function DatasetList({
   datasets,
   generatedAt,
-  classificationVocabulary,
+  classificationVocabulary: initialVocabulary,
   starredDatasetIds = [],
 }: DatasetListProps) {
   const [query, setQuery] = useState("");
@@ -192,6 +193,41 @@ export function DatasetList({
   const [filters, setFilters] = useState<DatasetFilterState>({
     ...emptyDatasetFilters,
   });
+  const [vocabulary, setVocabulary] =
+    useState<ClassificationVocabularyDoc>(initialVocabulary);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (pathname !== "/datasets/search") return;
+
+    let cancelled = false;
+    router.refresh();
+
+    void (async () => {
+      const res = await fetch("/api/catalogue/classification", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok || cancelled) return;
+      const body: unknown = await res.json().catch(() => null);
+      if (
+        cancelled ||
+        !body ||
+        typeof body !== "object" ||
+        !("vocabulary" in body)
+      ) {
+        return;
+      }
+      const next = (body as { vocabulary: ClassificationVocabularyDoc })
+        .vocabulary;
+      if (next?.fields) setVocabulary(next);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router]);
 
   function handleExcludeModeChange(next: boolean) {
     setFilterExcludeMode(next);
@@ -219,7 +255,7 @@ export function DatasetList({
         {
           excludeMode: filterExcludeMode,
         },
-        classificationVocabulary,
+        vocabulary,
       ),
     );
   }, [
@@ -227,7 +263,7 @@ export function DatasetList({
     filters,
     query,
     filterExcludeMode,
-    classificationVocabulary,
+    vocabulary,
   ]);
 
   const trimmedQuery = query.trim();
@@ -287,7 +323,7 @@ export function DatasetList({
               query={query}
               resultCount={filtered.length}
               totalCount={datasets.length}
-              classificationVocabulary={classificationVocabulary}
+              classificationVocabulary={vocabulary}
               onExcludeModeChange={handleExcludeModeChange}
               onFiltersChange={setFilters}
             />
@@ -346,7 +382,7 @@ export function DatasetList({
                               </div>
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[20rem] sm:justify-end">
-                              {metadataBadges(dataset, classificationVocabulary).map((label, badgeIndex) => (
+                              {metadataBadges(dataset, vocabulary).map((label, badgeIndex) => (
                                 <Badge
                                   key={`${dataset.id}-${label}`}
                                   variant={badgeIndex === 0 ? "secondary" : "outline"}

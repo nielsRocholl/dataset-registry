@@ -56,6 +56,7 @@
   --shadow-composer:
     0 1px 2px color-mix(in oklch, var(--neutral-950) 5%, transparent),
     0 18px 54px -32px color-mix(in oklch, var(--neutral-950) 28%, transparent);
+  --shadow-composer-inset: inset 0 1px 0 0 rgba(0, 0, 0, 0.04);
 
   --background: var(--surface-canvas);
   --foreground: var(--neutral-900);
@@ -75,6 +76,7 @@
   --border: var(--border-default);
   --input: var(--border-default);
   --ring: color-mix(in oklch, var(--brand) 68%, var(--neutral-700));
+  --link: color-mix(in oklch, var(--neutral-700) 88%, var(--brand));
   --placeholder: var(--neutral-500);
   --chart-1: var(--brand);
   --chart-2: var(--neutral-700);
@@ -96,46 +98,127 @@
   :root {
     color-scheme: dark;
 
-    --surface-canvas: oklch(13.8% 0.012 58);
-    --surface-sidebar: oklch(15.8% 0.012 58);
-    --surface-base: oklch(17.2% 0.012 58);
-    --surface-raised: oklch(20.5% 0.012 58);
-    --surface-sunken: oklch(10.8% 0.01 58);
-    --brand: oklch(68% 0.13 42);
-    --brand-soft: color-mix(in oklch, var(--brand) 20%, transparent);
-    --brand-text: color-mix(in oklch, var(--brand) 76%, white);
-    --border-subtle: color-mix(in oklch, white 7%, transparent);
-    --border-default: color-mix(in oklch, white 11%, transparent);
-    --border-strong: color-mix(in oklch, white 18%, transparent);
+    /* Claude.ai dark palette */
+    --claude-cod-gray: #1d1d1d;
+    --claude-text-primary: #ececea;
+    --claude-text-secondary: #93938d;
+    --claude-green-spring: #bcc2b1;
+    --claude-lynch: #77889e;
+    --claude-polo-blue: #829ec4;
+
+    --surface-canvas: var(--claude-cod-gray);
+    --surface-sidebar: var(--claude-cod-gray);
+    --surface-base: var(--claude-cod-gray);
+    --surface-raised: var(--claude-cod-gray);
+    --surface-sunken: #191919;
+
+    --brand: #c4674f;
+    --brand-soft: color-mix(in oklch, var(--brand) 18%, transparent);
+    --brand-text: color-mix(in oklch, var(--brand) 78%, var(--claude-text-primary));
+
+    --border-subtle: color-mix(in oklch, var(--claude-lynch) 14%, transparent);
+    --border-default: color-mix(in oklch, var(--claude-lynch) 22%, transparent);
+    --border-strong: color-mix(in oklch, var(--claude-lynch) 34%, transparent);
 
     --background: var(--surface-canvas);
-    --foreground: oklch(96.5% 0.006 82);
+    --foreground: var(--claude-text-primary);
     --card: var(--surface-raised);
-    --card-foreground: oklch(96.5% 0.006 82);
+    --card-foreground: var(--claude-text-primary);
     --popover: var(--surface-raised);
-    --popover-foreground: oklch(96.5% 0.006 82);
-    --primary: oklch(94.8% 0.007 82);
-    --primary-foreground: var(--neutral-950);
-    --secondary: var(--surface-raised);
-    --secondary-foreground: oklch(93% 0.007 82);
-    --muted: var(--surface-raised);
-    --muted-foreground: oklch(73% 0.012 78);
-    --accent: color-mix(in oklch, var(--brand) 16%, var(--surface-raised));
-    --accent-foreground: oklch(96.5% 0.006 82);
+    --popover-foreground: var(--claude-text-primary);
+    --primary: var(--claude-text-primary);
+    --primary-foreground: var(--claude-cod-gray);
+    --secondary: var(--surface-sunken);
+    --secondary-foreground: var(--claude-green-spring);
+    --muted: var(--surface-sunken);
+    --muted-foreground: var(--claude-text-secondary);
+    --accent: color-mix(in oklch, var(--claude-green-spring) 9%, var(--claude-cod-gray));
+    --accent-foreground: var(--claude-text-primary);
     --destructive: oklch(67% 0.16 25);
     --border: var(--border-default);
-    --input: var(--border-default);
-    --ring: color-mix(in oklch, var(--brand) 70%, white);
-    --placeholder: oklch(61% 0.012 74);
+    --input: var(--border-subtle);
+    --ring: color-mix(in oklch, var(--claude-polo-blue) 62%, transparent);
+    --link: var(--claude-polo-blue);
+    --placeholder: var(--claude-text-secondary);
     --sidebar: var(--surface-sidebar);
-    --sidebar-foreground: oklch(96.5% 0.006 82);
-    --sidebar-primary: oklch(94.8% 0.007 82);
-    --sidebar-primary-foreground: var(--neutral-950);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: oklch(96.5% 0.006 82);
+    --sidebar-foreground: var(--claude-text-primary);
+    --sidebar-primary: var(--claude-text-primary);
+    --sidebar-primary-foreground: var(--claude-cod-gray);
+    --sidebar-accent: color-mix(in oklch, var(--claude-green-spring) 8%, var(--claude-cod-gray));
+    --sidebar-accent-foreground: var(--claude-text-primary);
     --sidebar-border: var(--border-subtle);
     --sidebar-ring: var(--ring);
+
+    --shadow-soft:
+      0 1px 2px color-mix(in oklch, black 24%, transparent),
+      0 18px 44px -34px color-mix(in oklch, black 42%, transparent);
+    --shadow-composer:
+      0 1px 2px color-mix(in oklch, black 20%, transparent),
+      0 18px 54px -32px color-mix(in oklch, black 36%, transparent);
+    --shadow-composer-inset: inset 0 1px 0 0 color-mix(in oklch, white 5%, transparent);
   }
+}
+
+.dark {
+  color-scheme: dark;
+
+  --claude-cod-gray: #1d1d1d;
+  --claude-text-primary: #ececea;
+  --claude-text-secondary: #93938d;
+  --claude-green-spring: #bcc2b1;
+  --claude-lynch: #77889e;
+  --claude-polo-blue: #829ec4;
+
+  --surface-canvas: var(--claude-cod-gray);
+  --surface-sidebar: var(--claude-cod-gray);
+  --surface-base: var(--claude-cod-gray);
+  --surface-raised: var(--claude-cod-gray);
+  --surface-sunken: #191919;
+
+  --brand: #c4674f;
+  --brand-soft: color-mix(in oklch, var(--brand) 18%, transparent);
+  --brand-text: color-mix(in oklch, var(--brand) 78%, var(--claude-text-primary));
+
+  --border-subtle: color-mix(in oklch, var(--claude-lynch) 14%, transparent);
+  --border-default: color-mix(in oklch, var(--claude-lynch) 22%, transparent);
+  --border-strong: color-mix(in oklch, var(--claude-lynch) 34%, transparent);
+
+  --background: var(--surface-canvas);
+  --foreground: var(--claude-text-primary);
+  --card: var(--surface-raised);
+  --card-foreground: var(--claude-text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--claude-text-primary);
+  --primary: var(--claude-text-primary);
+  --primary-foreground: var(--claude-cod-gray);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--claude-green-spring);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--claude-text-secondary);
+  --accent: color-mix(in oklch, var(--claude-green-spring) 9%, var(--claude-cod-gray));
+  --accent-foreground: var(--claude-text-primary);
+  --destructive: oklch(67% 0.16 25);
+  --border: var(--border-default);
+  --input: var(--border-subtle);
+  --ring: color-mix(in oklch, var(--claude-polo-blue) 62%, transparent);
+  --link: var(--claude-polo-blue);
+  --placeholder: var(--claude-text-secondary);
+  --sidebar: var(--surface-sidebar);
+  --sidebar-foreground: var(--claude-text-primary);
+  --sidebar-primary: var(--claude-text-primary);
+  --sidebar-primary-foreground: var(--claude-cod-gray);
+  --sidebar-accent: color-mix(in oklch, var(--claude-green-spring) 8%, var(--claude-cod-gray));
+  --sidebar-accent-foreground: var(--claude-text-primary);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--ring);
+
+  --shadow-soft:
+    0 1px 2px color-mix(in oklch, black 24%, transparent),
+    0 18px 44px -34px color-mix(in oklch, black 42%, transparent);
+  --shadow-composer:
+    0 1px 2px color-mix(in oklch, black 20%, transparent),
+    0 18px 54px -32px color-mix(in oklch, black 36%, transparent);
+  --shadow-composer-inset: inset 0 1px 0 0 color-mix(in oklch, white 5%, transparent);
 }
 
 @theme inline {
@@ -170,6 +253,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-link: var(--link);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -212,6 +296,16 @@
 
   a[href]:not([aria-disabled="true"]) {
     cursor: pointer;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root a[href]:not([aria-disabled="true"]):not([class*="text-"]) {
+      color: var(--link);
+    }
+  }
+
+  .dark a[href]:not([aria-disabled="true"]):not([class*="text-"]) {
+    color: var(--link);
   }
 
   *:focus-visible {
@@ -329,9 +423,7 @@
     border-radius: var(--radius-4xl);
     border: 1px solid var(--border-default);
     background-color: var(--surface-raised);
-    box-shadow:
-      var(--shadow-composer),
-      inset 0 1px 0 0 rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-composer), var(--shadow-composer-inset);
   }
 
   .typing-caret {

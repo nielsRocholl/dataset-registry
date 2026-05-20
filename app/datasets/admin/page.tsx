@@ -15,7 +15,7 @@ import {
   CLASSIFICATION_VOCABULARY_FIELDS,
   countClassificationValueUsage,
 } from "@/lib/catalogue/classification-vocabulary";
-import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
+import { loadClassificationVocabularyUncached } from "@/lib/catalogue/classification-vocabulary.server";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 
 export default async function AdminPage() {
@@ -26,7 +26,7 @@ export default async function AdminPage() {
 
   const members = await listAdminMembers();
   const [vocab, { datasets }] = await Promise.all([
-    loadClassificationVocabularyLive(),
+    loadClassificationVocabularyUncached(),
     fetchCatalogueIndexLive(),
   ]);
 

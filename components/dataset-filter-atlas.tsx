@@ -48,7 +48,7 @@ type DatasetFilterAtlasProps = {
 };
 
 const GROUP_BLUEPRINT = [
-  { id: "modalities" as const, title: "Imaging", optionsKey: "modality" as const },
+  { id: "modalities" as const, title: "Modality", optionsKey: "modality" as const },
   { id: "bodyRegions" as const, title: "Body map", optionsKey: "body_region" as const },
   { id: "annotationTypes" as const, title: "Annotation", optionsKey: null },
   { id: "tasks" as const, title: "Research task", optionsKey: "task" as const },
@@ -66,6 +66,8 @@ type FilterGroupSpec = {
   id: FilterGroupId;
   title: string;
   options: FilterOption[];
+  /** Vocabulary-driven groups show every term even with zero matching datasets. */
+  showAllVocabularyOptions?: boolean;
   /** When set, anatomy filters render under Body map instead of standalone. */
   embedAnatomy?: FilterOption[];
 };
@@ -171,9 +173,11 @@ function sanitizeSelection(
   query: string,
   matchOpts: FilterMatchOptions,
   vocabulary: ClassificationVocabularyDoc,
+  allowZeroCount = false,
 ) {
   return nextValues.filter((value) => {
     if (prevSelected.includes(value)) return true;
+    if (allowZeroCount) return true;
     return (
       getFilterOptionCount(
         datasets,
@@ -204,6 +208,7 @@ function ToggleRow({
   ariaLabel,
   onFiltersChange,
   vocabulary,
+  showAllVocabularyOptions = false,
 }: {
   datasets: DatasetCatalogueEntry[];
   filters: DatasetFilterState;
@@ -214,6 +219,7 @@ function ToggleRow({
   ariaLabel: string;
   onFiltersChange: (filters: DatasetFilterState) => void;
   vocabulary: ClassificationVocabularyDoc;
+  showAllVocabularyOptions?: boolean;
 }) {
   if (options.length === 0) return null;
 
@@ -239,6 +245,7 @@ function ToggleRow({
               query,
               matchOpts,
               vocabulary,
+              showAllVocabularyOptions,
             ),
           ),
         )
@@ -256,7 +263,8 @@ function ToggleRow({
           matchOpts,
           vocabulary,
         );
-        const unavailable = count === 0 && !selected;
+        const unavailable =
+          !showAllVocabularyOptions && count === 0 && !selected;
         const chipAriaDesc = excludeMode
           ? `${count} datasets remain if excluding only this chip in its group (other exclusions unchanged)`
           : `${count} matching datasets`;
@@ -336,6 +344,7 @@ function FilterGroup({
         options={group.options}
         query={query}
         vocabulary={vocabulary}
+        showAllVocabularyOptions={group.showAllVocabularyOptions}
         onFiltersChange={onFiltersChange}
       />
       {group.embedAnatomy && group.embedAnatomy.length > 0 ? (
@@ -381,6 +390,7 @@ export function DatasetFilterAtlas({
         id: row.id,
         title: row.title,
         options: resolveBlueprintOptions(classificationVocabulary, row),
+        showAllVocabularyOptions: row.id !== "scale",
       })),
     [classificationVocabulary],
   );

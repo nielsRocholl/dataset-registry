@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { PlusIcon, Settings2Icon, XIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  CheckCircle2Icon,
+  Loader2Icon,
+  PlusIcon,
+  Settings2Icon,
+  XIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +19,43 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { CATALOGUE_FORM_FIELD_BODY_SCOPE } from "@/lib/catalogue/catalogue-form-field-scope";
-import type { ClassificationFieldId } from "@/lib/catalogue/classification-vocabulary";
+import type {
+  ClassificationFieldId,
+  ClassificationVocabularyDoc,
+} from "@/lib/catalogue/classification-vocabulary";
 import {
   CLASSIFICATION_VOCABULARY_FIELDS,
   classificationFieldHumanTitle,
 } from "@/lib/catalogue/classification-vocabulary";
 import { cn } from "@/lib/utils";
+
+type AddDialogPhase = "loading" | "success" | "error";
+
+function mergeVocabularyIntoRows(
+  prev: Record<ClassificationFieldId, ClassificationOptionRow[]>,
+  vocab: ClassificationVocabularyDoc,
+): Record<ClassificationFieldId, ClassificationOptionRow[]> {
+  const next = { ...prev };
+  for (const id of CLASSIFICATION_VOCABULARY_FIELDS) {
+    const usageByValue = new Map(
+      (prev[id] ?? []).map((r) => [r.value, r.usageCount] as const),
+    );
+    next[id] = vocab.fields[id].map((t) => ({
+      ...t,
+      usageCount: usageByValue.get(t.value) ?? 0,
+    }));
+  }
+  return next;
+}
+
+function isVocabularyDoc(x: unknown): x is ClassificationVocabularyDoc {
+  return (
+    !!x &&
+    typeof x === "object" &&
+    "fields" in x &&
+    typeof (x as ClassificationVocabularyDoc).fields === "object"
+  );
+}
 
 export type ClassificationOptionRow = {
   value: string;
@@ -40,12 +77,17 @@ export function AdminClassificationPanel({
 
   const [valueIn, setValueIn] = useState("");
   const [labelIn, setLabelIn] = useState("");
-  const [pending, setPending] = useState(false);
+  const [addPending, setAddPending] = useState(false);
+  const [removePending, setRemovePending] = useState(false);
   const [highlightAddRow, setHighlightAddRow] = useState(false);
-  /** Hard errors — inline under the list only; no modal. */
   const [error, setError] = useState<string | null>(null);
   const [enteredSlug, setEnteredSlug] = useState<string | null>(null);
   const [exitingSlug, setExitingSlug] = useState<string | null>(null);
+
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDialogPhase, setAddDialogPhase] =
+    useState<AddDialogPhase>("loading");
+  const [addDialogError, setAddDialogError] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<{
     row: ClassificationOptionRow;
@@ -57,26 +99,48 @@ export function AdminClassificationPanel({
     return xs;
   }, [rows, field]);
 
-  async function reload() {
-    const res = await fetch("/api/admin/classification", {
-      credentials: "include",
-    });
-    const body: unknown = await res.json().catch(() => ({}));
-    if (!res.ok || !body || typeof body !== "object") return false;
-    if ("options" in body && typeof (body as { options: unknown }).options === "object") {
-      setRows((body as { options: typeof rows }).options);
-      return true;
-    }
-    return false;
-  }
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const res = await fetch("/api/admin/classification", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok || cancelled) return;
+      const body: unknown = await res.json().catch(() => null);
+      if (
+        cancelled ||
+        !body ||
+        typeof body !== "object" ||
+        !("options" in body)
+      ) {
+        return;
+      }
+      const options = (body as { options: typeof rows }).options;
+      if (options) setRows(options);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const showEmptySkeleton =
-    pending && sortedRows.length === 0 && !exitingSlug;
+    addPending && sortedRows.length === 0 && !exitingSlug;
 
   async function addTerm() {
-    setPending(true);
-    setError(null);
     const slugAdded = valueIn.trim();
+    const labelAdded = labelIn.trim();
+    if (!slugAdded || !labelAdded) {
+      setError("Slug and label are required.");
+      return;
+    }
+
+    setAddPending(true);
+    setError(null);
+    setAddDialogError(null);
+    setAddDialogPhase("loading");
+    setAddDialogOpen(true);
+
     try {
       const res = await fetch("/api/admin/classification", {
         method: "POST",
@@ -84,34 +148,45 @@ export function AdminClassificationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           field,
-          value: valueIn,
-          label: labelIn,
+          value: slugAdded,
+          label: labelAdded,
         }),
       });
       const body: unknown = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(
+        const msg =
           body && typeof body === "object" && "error" in body
             ? String((body as { error: unknown }).error)
-            : `Add failed (${res.status})`,
-        );
+            : `Add failed (${res.status})`;
+        setAddDialogPhase("error");
+        setAddDialogError(msg);
+        setError(msg);
         return;
       }
+
+      if (body && typeof body === "object" && "vocabulary" in body) {
+        const vocab = (body as { vocabulary: unknown }).vocabulary;
+        if (isVocabularyDoc(vocab)) {
+          setRows((prev) => mergeVocabularyIntoRows(prev, vocab));
+        }
+      }
+
       setValueIn("");
       setLabelIn("");
-      await reload();
+      setAddDialogPhase("success");
       if (slugAdded) {
         setEnteredSlug(slugAdded);
         window.setTimeout(() => setEnteredSlug(null), 400);
       }
+      window.setTimeout(() => setAddDialogOpen(false), 700);
     } finally {
-      setPending(false);
+      setAddPending(false);
     }
   }
 
   async function removeTermConfirmed() {
     if (!deleteTarget) return;
-    setPending(true);
+    setRemovePending(true);
     setError(null);
     const { row } = deleteTarget;
     try {
@@ -136,14 +211,19 @@ export function AdminClassificationPanel({
         );
         return;
       }
+      if (body && typeof body === "object" && "vocabulary" in body) {
+        const vocab = (body as { vocabulary: unknown }).vocabulary;
+        if (isVocabularyDoc(vocab)) {
+          setRows((prev) => mergeVocabularyIntoRows(prev, vocab));
+        }
+      }
       setExitingSlug(row.value);
       await new Promise<void>((resolve) => {
         window.setTimeout(resolve, 220);
       });
       setExitingSlug(null);
-      await reload();
     } finally {
-      setPending(false);
+      setRemovePending(false);
     }
   }
 
@@ -212,25 +292,25 @@ export function AdminClassificationPanel({
                 id="class-value"
                 value={valueIn}
                 onChange={(e) => setValueIn(e.target.value)}
-                placeholder="e.g. pet-ct"
-                disabled={pending}
+                placeholder="Slug — head_neck"
+                disabled={addPending}
                 className="h-9 w-[180px] max-w-[min(180px,100%)] shrink-0 font-mono text-[13px]"
-                aria-label="Value slug"
+                aria-label="Stable value slug stored in dataset JSON"
               />
               <Input
                 id="class-label"
                 value={labelIn}
                 onChange={(e) => setLabelIn(e.target.value)}
-                placeholder="e.g. PET-CT"
-                disabled={pending}
+                placeholder="Label — Head & neck"
+                disabled={addPending}
                 className="h-9 min-w-0 flex-1 text-[13px]"
-                aria-label="Display label"
+                aria-label="Display label shown in forms and filters"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                disabled={pending}
+                disabled={addPending}
                 aria-label="Add option"
                 className="size-9 shrink-0 hover:bg-[#C4674F]/8 hover:text-[#C4674F]"
                 onClick={() => void addTerm()}
@@ -239,8 +319,8 @@ export function AdminClassificationPanel({
               </Button>
             </div>
             <p className="mt-2 text-[11px] italic text-muted-foreground/50">
-              Value: lowercase, digits, hyphens. Label: display name shown in
-              forms and filters.
+              Slug is the stable ID saved in dataset JSON; label is what
+              researchers see in forms and filter chips.
             </p>
           </div>
 
@@ -285,7 +365,7 @@ export function AdminClassificationPanel({
                     </span>
                     <button
                       type="button"
-                      disabled={blocked || pending}
+                      disabled={blocked || addPending || removePending}
                       title={
                         blocked
                           ? "Remove datasets using this option first"
@@ -297,7 +377,7 @@ export function AdminClassificationPanel({
                           : "Remove option"
                       }
                       onClick={() => {
-                        if (blocked || pending) return;
+                        if (blocked || addPending || removePending) return;
                         setDeleteTarget({ row });
                       }}
                       className={cn(
@@ -333,26 +413,22 @@ export function AdminClassificationPanel({
               <DialogTitle className="font-display text-[length:var(--text-xl)] leading-tight text-foreground">
                 Remove {deleteTarget ? deleteTarget.row.label : ""}?
               </DialogTitle>
-              <DialogDescription>
-                <div className="space-y-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
-                  {deleteTarget ? (
-                    <>
-                      <p className="text-sm text-muted-foreground">
-                        Value:{" "}
-                        <code className="font-mono text-sm text-foreground">
-                          {deleteTarget.row.value}
-                        </code>
-                      </p>
-                      <p>
-                        {deleteTarget.row.usageCount > 0
-                          ? `Used in ${deleteTarget.row.usageCount} ${deleteTarget.row.usageCount === 1 ? "dataset" : "datasets"}.`
-                          : "Not used in any datasets."}
-                      </p>
-                    </>
-                  ) : null}
-                </div>
+              <DialogDescription className="text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
+                {deleteTarget
+                  ? deleteTarget.row.usageCount > 0
+                    ? `Used in ${deleteTarget.row.usageCount} ${deleteTarget.row.usageCount === 1 ? "dataset" : "datasets"}.`
+                    : "Not used in any datasets."
+                  : ""}
               </DialogDescription>
             </DialogHeader>
+            {deleteTarget ? (
+              <p className="text-[length:var(--text-sm)] text-muted-foreground">
+                Value:{" "}
+                <code className="font-mono text-sm text-foreground">
+                  {deleteTarget.row.value}
+                </code>
+              </p>
+            ) : null}
             {deleteTarget !== null && deleteTarget.row.usageCount > 0 ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
                 This option is still used. Edit those datasets before removing.
@@ -363,7 +439,7 @@ export function AdminClassificationPanel({
             <Button
               type="button"
               variant="ghost"
-              disabled={pending}
+              disabled={removePending}
               onClick={() => setDeleteTarget(null)}
             >
               Cancel
@@ -371,14 +447,74 @@ export function AdminClassificationPanel({
             <Button
               type="button"
               disabled={
-                pending ||
+                removePending ||
                 (deleteTarget !== null && deleteTarget.row.usageCount > 0)
               }
               className="bg-destructive text-white hover:bg-destructive/90 dark:text-white"
               onClick={() => void removeTermConfirmed()}
             >
-              {pending ? "Removing…" : "Remove option"}
+              {removePending ? "Removing…" : "Remove option"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={addDialogOpen}
+        onOpenChange={(open) => {
+          if (!addPending) setAddDialogOpen(open);
+        }}
+      >
+        <DialogContent
+          showCloseButton={addDialogPhase === "error"}
+          className="gap-0 overflow-hidden rounded-3xl border border-border bg-card p-0 shadow-[var(--shadow-soft)] ring-0 sm:max-w-xs"
+        >
+          <div className="flex flex-col items-center gap-3 px-6 py-8 text-center sm:px-7">
+            {addDialogPhase === "loading" ? (
+              <Loader2Icon
+                className="size-8 animate-spin text-[#C4674F]"
+                aria-hidden
+              />
+            ) : addDialogPhase === "success" ? (
+              <CheckCircle2Icon
+                className="size-8 text-[#C4674F]"
+                aria-hidden
+              />
+            ) : (
+              <XIcon
+                className="size-8 text-destructive/80"
+                aria-hidden
+                strokeWidth={2}
+              />
+            )}
+            <DialogHeader className="items-center gap-1">
+              <DialogTitle className="font-display text-[length:var(--text-lg)] text-foreground">
+                {addDialogPhase === "loading"
+                  ? "Adding option…"
+                  : addDialogPhase === "success"
+                    ? "Option added"
+                    : "Could not add"}
+              </DialogTitle>
+              {addDialogPhase === "error" && addDialogError ? (
+                <DialogDescription className="text-[length:var(--text-sm)] text-muted-foreground">
+                  {addDialogError}
+                </DialogDescription>
+              ) : addDialogPhase === "success" ? (
+                <DialogDescription className="text-[length:var(--text-sm)] text-muted-foreground">
+                  The list below has been updated.
+                </DialogDescription>
+              ) : null}
+            </DialogHeader>
+            {addDialogPhase === "error" ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-1"
+                onClick={() => setAddDialogOpen(false)}
+              >
+                Close
+              </Button>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

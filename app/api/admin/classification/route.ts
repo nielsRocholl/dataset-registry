@@ -13,7 +13,7 @@ import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import {
   CLASSIFICATION_VOCABULARY_CACHE_TAG,
   fetchClassificationBlobMeta,
-  loadClassificationVocabularyLive,
+  loadClassificationVocabularyUncached,
   writeClassificationVocabularyToGitHub,
 } from "@/lib/catalogue/classification-vocabulary.server";
 
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
   const auth = await requireAdmin(request);
   if (!auth.ok) return auth.response;
   try {
-    const vocab = await loadClassificationVocabularyLive();
+    const vocab = await loadClassificationVocabularyUncached();
     const { datasets } = await fetchCatalogueIndexLive();
     const fieldIds = [
       "modality",
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await loadClassificationVocabularyLive();
+  const current = await loadClassificationVocabularyUncached();
   let next;
   try {
     next = addClassificationTerm(current, fieldRaw, valueRaw, labelRaw);
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
       blobMeta.missing ? undefined : blobMeta.sha,
       msg,
     );
-    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, "max");
+    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, { expire: 0 });
     return NextResponse.json({ vocabulary: next });
   } catch {
     return NextResponse.json(
@@ -181,7 +181,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const current = await loadClassificationVocabularyLive();
+    const current = await loadClassificationVocabularyUncached();
     let next;
     try {
       next = removeClassificationTerm(current, fieldRaw, trimmed);
@@ -202,7 +202,7 @@ export async function DELETE(request: Request) {
     }
     const msg = `chore(catalogue): remove ${fieldRaw} ${trimmed}`;
     await writeClassificationVocabularyToGitHub(text, blobMeta.sha, msg);
-    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, "max");
+    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, { expire: 0 });
     return NextResponse.json({ vocabulary: next });
   } catch {
     return NextResponse.json(
