@@ -1,0 +1,28 @@
+{
+  "id": "test-ds",
+  "name": "Test dataset",
+  "short_description": "a test dataset",
+  "internal_storage_path": "/test",
+  "modality": "mixed",
+  "anatomy": "lung, liver",
+  "task": "segmentation",
+  "access_level": "public",
+  "created_by": "Niels Rocholl",
+  "created_at": "2026-05-20T11:06:12.613Z",
+  "updated_at": "2026-05-20T11:06:12.613Z",
+  "body_regions": [
+    "abdomen",
+    "head_neck"
+  ],
+  "annotation_types": [
+    "voxel_mask"
+  ],
+  "status": "active",
+  "n_patients": 50,
+  "n_studies": 1,
+  "n_images": 200,
+  "dimensionality": "3D",
+  "upstream_url": "https://dataset-registry.vercel.app/datasets/new",
+  "created_by_user_id": "4a83698c-dd44-43dd-9e75-1d2bc773b440",
+  "created_by_email": "nielsrocholl@gmail.com"
+}
