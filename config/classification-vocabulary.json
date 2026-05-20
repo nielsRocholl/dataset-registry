@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-20T07:20:04.903Z",
+  "updated_at": "2026-05-20T07:29:19.201Z",
   "fields": {
     "modality": [
       {
@@ -25,6 +25,10 @@
       {
         "value": "PET",
         "label": "PET"
+      },
+      {
+        "value": "text",
+        "label": "Text"
       },
       {
         "value": "ultrasound",
