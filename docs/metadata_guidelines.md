@@ -63,6 +63,12 @@ hyphens, not free text.
 
 Example: `["liver"]`
 
+### `main_disease_type` (optional)
+
+Primary disease or condition focus for the cohort or labels (e.g. hepatocellular carcinoma, idiopathic pulmonary fibrosis). Not vocabulary-controlled.
+
+Example: `"hepatocellular carcinoma"`
+
 ### `task`
 
 Controlled vocabulary (`segmentation`, `detection`, etc.—see seeded file). Select one or more tasks when a dataset supports multiple research goals. Add entries via admin if missing.
@@ -98,6 +104,12 @@ Example: `"3D"`
 Set to `true` when the dataset includes repeated scans or follow-up timepoints per subject. Complements `n_studies` (a count) but does not replace it.
 
 Example: `true`
+
+### `phase` (optional)
+
+Free-text contrast or acquisition phase (e.g. arterial, portal venous, delayed) or a clinical trial phase label when relevant. Not vocabulary-controlled.
+
+Example: `"arterial"`
 
 ## Access (required + optional)
 

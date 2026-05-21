@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import {
   AsteriskIcon,
+  BookOpenIcon,
   BookTextIcon,
   ChevronLeftIcon,
   DatabaseIcon,
+  ExternalLinkIcon,
   FolderIcon,
   ShieldCheckIcon,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 import { BibtexCitationBlock } from "@/components/bibtex-citation-block";
 import { CopyClipboardButton } from "@/components/copy-clipboard-button";
@@ -38,14 +42,14 @@ import {
   getDatasetTasks,
 } from "@/lib/catalogue/filters";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
-import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
+import {
+  getDatasetDescriptionServer,
+  getDatasetEntryServer,
+} from "@/lib/catalogue/resolve-dataset-server";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
 import {
   CATALOGUE_BACK_LINK_CN,
   CATALOGUE_CHIP_CN,
-  CATALOGUE_DETAIL_LABEL_CN,
-  CATALOGUE_DETAIL_VALUE_CN,
-  CATALOGUE_DETAIL_VALUE_MONO_CN,
   CATALOGUE_MASTHEAD_CARD_CN,
   CATALOGUE_PAGE_MAIN_CN,
 } from "@/lib/catalogue/catalogue-surface-styles";
@@ -59,41 +63,92 @@ export function generateStaticParams() {
 
 function formatWhen(iso: string) {
   const time = new Date(iso);
-  return Number.isNaN(time.getTime())
-    ? iso
-    : `${time.toISOString().slice(0, 19).replace("T", " ")} UTC`;
+  if (Number.isNaN(time.getTime())) return iso;
+  const day = time.getUTCDate();
+  const month = time.toLocaleString("en-GB", {
+    month: "short",
+    timeZone: "UTC",
+  });
+  const year = time.getUTCFullYear();
+  const hours = String(time.getUTCHours()).padStart(2, "0");
+  const mins = String(time.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hours}:${mins} UTC`;
 }
 
-function DetailRow({
-  label,
-  value,
-  mono = false,
+function MetaRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-4 border-b py-3 last:border-0">
+      <span className="w-36 shrink-0 pt-0.5 text-xs text-muted-foreground">
+        {label}
+      </span>
+      <div className="flex-1 text-sm">{children}</div>
+    </div>
+  );
+}
+
+function BadgeList({ values }: { values: string[] }) {
+  if (!values.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {values.map((v) => (
+        <Badge key={v} variant="outline" className="font-normal">
+          {v}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function AccessLevelBadge({ level, label }: { level: string; label: string }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        level === "internal" &&
+          "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+        level === "public" &&
+          "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+        level === "restricted" &&
+          "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400",
+      )}
+    >
+      {label}
+    </Badge>
+  );
+}
+
+function StatStrip({ stats }: { stats: { value: number; label: string }[] }) {
+  if (!stats.length) return null;
+  return (
+    <div className="mb-2 flex gap-8 border-b pb-5">
+      {stats.map(({ value, label }) => (
+        <div key={label} className="flex flex-col gap-0.5">
+          <span className="text-2xl font-medium tabular-nums">
+            {value.toLocaleString()}
+          </span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">
+            {label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionCardHeader({
+  icon: Icon,
+  title,
 }: {
-  label: string;
-  value: string | number;
-  mono?: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
 }) {
   return (
-    <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
-      <dt
-        className={cn(
-          "text-[length:var(--text-xs)] font-medium text-muted-foreground",
-          CATALOGUE_DETAIL_LABEL_CN,
-        )}
-      >
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          mono
-            ? "break-all font-mono text-[length:var(--text-sm)]"
-            : "text-[length:var(--text-sm)]",
-          mono ? CATALOGUE_DETAIL_VALUE_MONO_CN : CATALOGUE_DETAIL_VALUE_CN,
-        )}
-      >
-        {value}
-      </dd>
-    </div>
+    <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 border-b py-4">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <CardTitle className="text-sm font-semibold tracking-wide">
+        {title}
+      </CardTitle>
+    </CardHeader>
   );
 }
 
@@ -103,10 +158,11 @@ export default async function DatasetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [dataset, user, vocab] = await Promise.all([
+  const [dataset, user, vocab, markdown] = await Promise.all([
     getDatasetEntryServer(id),
     getCurrentCatalogueUser(),
     loadClassificationVocabularyLive(),
+    getDatasetDescriptionServer(id),
   ]);
   if (!dataset) {
     notFound();
@@ -126,6 +182,34 @@ export default async function DatasetDetailPage({
     Boolean(dataset.original_authors?.trim()) ||
     Boolean(dataset.bibtex_citation?.trim()) ||
     Boolean(dataset.upstream_url?.trim());
+
+  const modalityLabels = modalities.map((mod) =>
+    vocabularyLabel(vocab, "modality", mod),
+  );
+  const taskLabels = tasks.map((task) =>
+    vocabularyLabel(vocab, "task", task),
+  );
+  const bodyRegionLabels = bodyRegions.map((region) =>
+    vocabularyLabel(vocab, "body_region", region),
+  );
+  const anatomyTagLabels = anatomyTags.map(formatAnatomyTagLabel);
+  const annotationLabels = annotationTypes.map((annotation) =>
+    vocabularyLabel(vocab, "annotation_type", annotation),
+  );
+
+  const stats = [
+    dataset.n_patients != null
+      ? { value: dataset.n_patients, label: "patients" }
+      : null,
+    dataset.n_studies != null
+      ? { value: dataset.n_studies, label: "studies" }
+      : null,
+    dataset.n_images != null
+      ? { value: dataset.n_images, label: "images" }
+      : null,
+  ].filter((s): s is { value: number; label: string } => s != null);
+
+  const markdownContent = markdown?.trim();
 
   return (
     <main
@@ -232,192 +316,160 @@ export default async function DatasetDetailPage({
           </div>
         </header>
 
-        <div className="grid gap-3 dark:gap-5">
-          <Card size="sm">
-            <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2">
-                <FolderIcon aria-hidden />
-                Storage
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <dl className="grid gap-3">
-                <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
-                  <dt
-                    className={cn(
-                      "text-[length:var(--text-xs)] font-medium text-muted-foreground",
-                      CATALOGUE_DETAIL_LABEL_CN,
-                    )}
-                  >
-                    Storage path
-                  </dt>
-                  <dd className="flex min-w-0 items-start gap-0.5">
-                    <span
-                      className={cn(
-                        "min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)]",
-                        CATALOGUE_DETAIL_VALUE_MONO_CN,
-                      )}
-                    >
-                      {dataset.internal_storage_path}
-                    </span>
-                    <CopyClipboardButton
-                      text={dataset.internal_storage_path}
-                      label="Copy storage path"
-                      iconOnly
-                      className="mt-px"
-                    />
-                  </dd>
+        <div className="flex flex-col gap-4">
+          {markdownContent ? (
+            <Card>
+              <SectionCardHeader icon={BookOpenIcon} title="Description" />
+              <CardContent className="prose prose-sm dark:prose-invert max-w-none px-6 py-5">
+                <ReactMarkdown>{markdownContent}</ReactMarkdown>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <Card>
+            <SectionCardHeader icon={FolderIcon} title="Storage" />
+            <CardContent className="px-6 py-5">
+              <MetaRow label="Storage path">
+                <div className="flex min-w-0 items-start gap-1">
+                  <code className="min-w-0 flex-1 break-all rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-muted-foreground">
+                    {dataset.internal_storage_path}
+                  </code>
+                  <CopyClipboardButton
+                    text={dataset.internal_storage_path}
+                    label="Copy storage path"
+                    iconOnly
+                    className="mt-px shrink-0"
+                  />
                 </div>
-              </dl>
+              </MetaRow>
             </CardContent>
           </Card>
 
-          <Card size="sm">
-            <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheckIcon aria-hidden />
-                Access
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 pt-4">
-              <dl className="grid gap-3">
-                <DetailRow label="Level" value={dataset.access_level} />
-                {dataset.license ? (
-                  <DetailRow label="License" value={dataset.license} />
-                ) : null}
-              </dl>
+          <Card>
+            <SectionCardHeader icon={ShieldCheckIcon} title="Access" />
+            <CardContent className="px-6 py-5">
+              <MetaRow label="Level">
+                <AccessLevelBadge
+                  level={dataset.access_level}
+                  label={vocabularyLabel(
+                    vocab,
+                    "access_level",
+                    dataset.access_level,
+                  )}
+                />
+              </MetaRow>
+              {dataset.license ? (
+                <MetaRow label="License">{dataset.license}</MetaRow>
+              ) : null}
               {dataset.access_notes ? (
-                <>
-                  <Separator />
-                  <p className="ui-copy whitespace-pre-wrap text-[length:var(--text-sm)] dark:text-white/40">
-                    {dataset.access_notes}
-                  </p>
-                </>
+                <p className="mt-4 text-sm italic text-muted-foreground">
+                  {dataset.access_notes}
+                </p>
               ) : null}
             </CardContent>
           </Card>
 
           {hasProvenance ? (
-            <Card size="sm">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center gap-2">
-                  <BookTextIcon aria-hidden />
-                  Provenance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4 pt-4">
+            <Card>
+              <SectionCardHeader icon={BookTextIcon} title="Provenance" />
+              <CardContent className="flex flex-col gap-4 px-6 py-5">
                 {dataset.original_authors?.trim() ? (
-                  <dl>
-                    <DetailRow
-                      label="Original author(s)"
-                      value={dataset.original_authors.trim()}
-                    />
-                  </dl>
+                  <MetaRow label="Original author(s)">
+                    {dataset.original_authors.trim()}
+                  </MetaRow>
                 ) : null}
                 {dataset.bibtex_citation?.trim() ? (
                   <BibtexCitationBlock text={dataset.bibtex_citation.trim()} />
                 ) : null}
                 {dataset.upstream_url?.trim() ? (
-                  <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
-                    <dt
-                      className={cn(
-                        "text-[length:var(--text-xs)] font-medium text-muted-foreground",
-                        CATALOGUE_DETAIL_LABEL_CN,
-                      )}
+                  <MetaRow label="Upstream URL">
+                    <a
+                      href={dataset.upstream_url.trim()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"
                     >
-                      Upstream URL
-                    </dt>
-                    <dd className="flex min-w-0 items-start gap-0.5">
-                      <a
-                        href={dataset.upstream_url.trim()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "min-w-0 flex-1 break-all font-mono text-[length:var(--text-sm)] text-brand underline-offset-2 hover:underline",
-                          CATALOGUE_DETAIL_VALUE_MONO_CN,
-                        )}
-                      >
-                        {dataset.upstream_url.trim()}
-                      </a>
-                      <CopyClipboardButton
-                        text={dataset.upstream_url.trim()}
-                        label="Copy upstream URL"
-                        iconOnly
-                        className="mt-px"
-                      />
-                    </dd>
-                  </div>
+                      {dataset.upstream_url.trim()}
+                      <ExternalLinkIcon className="h-3 w-3 opacity-60" />
+                    </a>
+                  </MetaRow>
                 ) : null}
               </CardContent>
             </Card>
           ) : null}
 
-          <Card size="sm">
-            <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2">
-                <DatabaseIcon aria-hidden />
-                Metadata
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <dl className="grid gap-3">
-                <DetailRow label="Id" value={dataset.id} mono />
-                <DetailRow
-                  label="Anatomy tags"
-                  value={anatomyTags.map(formatAnatomyTagLabel).join(", ")}
-                />
-                <DetailRow
-                  label="Body regions"
-                  value={bodyRegions
-                    .map((region) => vocabularyLabel(vocab, "body_region", region))
-                    .join(", ")}
-                />
-                <DetailRow
-                  label="Modalities"
-                  value={modalities
-                    .map((mod) => vocabularyLabel(vocab, "modality", mod))
-                    .join(", ")}
-                />
-                <DetailRow
-                  label="Tasks"
-                  value={tasks
-                    .map((task) => vocabularyLabel(vocab, "task", task))
-                    .join(", ")}
-                />
-                <DetailRow
-                  label="Annotations"
-                  value={annotationTypes
-                    .map((annotation) =>
-                      vocabularyLabel(vocab, "annotation_type", annotation),
-                    )
-                    .join(", ")}
-                />
-                <DetailRow label="Created by" value={dataset.created_by} />
-                <DetailRow label="Created" value={formatWhen(dataset.created_at)} />
-                <DetailRow label="Updated" value={formatWhen(dataset.updated_at)} />
-                {dataset.n_patients != null ? (
-                  <DetailRow label="Patients" value={dataset.n_patients} />
-                ) : null}
-                {dataset.n_studies != null ? (
-                  <DetailRow label="Studies" value={dataset.n_studies} />
-                ) : null}
-                {dataset.n_images != null ? (
-                  <DetailRow label="Images" value={dataset.n_images} />
-                ) : null}
-                {dataset.dimensionality ? (
-                  <DetailRow
-                    label="Dimensions"
-                    value={vocabularyLabel(
+          <Card>
+            <SectionCardHeader icon={DatabaseIcon} title="Metadata" />
+            <CardContent className="px-6 py-5">
+              <StatStrip stats={stats} />
+              {stats.length > 0 ? <Separator className="my-5" /> : null}
+
+              {modalityLabels.length > 0 ? (
+                <MetaRow label="Modalities">
+                  <BadgeList values={modalityLabels} />
+                </MetaRow>
+              ) : null}
+              {taskLabels.length > 0 ? (
+                <MetaRow label="Tasks">
+                  <BadgeList values={taskLabels} />
+                </MetaRow>
+              ) : null}
+              {bodyRegionLabels.length > 0 ? (
+                <MetaRow label="Body regions">
+                  <BadgeList values={bodyRegionLabels} />
+                </MetaRow>
+              ) : null}
+              {anatomyTagLabels.length > 0 ? (
+                <MetaRow label="Anatomy tags">
+                  <BadgeList values={anatomyTagLabels} />
+                </MetaRow>
+              ) : null}
+              {annotationLabels.length > 0 ? (
+                <MetaRow label="Annotations">
+                  <BadgeList values={annotationLabels} />
+                </MetaRow>
+              ) : null}
+              {dataset.dimensionality ? (
+                <MetaRow label="Dimensions">
+                  <Badge variant="secondary">
+                    {vocabularyLabel(
                       vocab,
                       "dimensionality",
                       dataset.dimensionality,
                     )}
-                  />
-                ) : null}
-                {dataset.is_longitudinal ? (
-                  <DetailRow label="Longitudinal" value="Yes" />
-                ) : null}
-              </dl>
+                  </Badge>
+                </MetaRow>
+              ) : null}
+              <MetaRow label="Longitudinal">
+                <Badge variant={dataset.is_longitudinal ? "secondary" : "outline"}>
+                  {dataset.is_longitudinal ? "Yes" : "No"}
+                </Badge>
+              </MetaRow>
+              {dataset.phase?.trim() ? (
+                <MetaRow label="Phase">{dataset.phase.trim()}</MetaRow>
+              ) : null}
+              {dataset.main_disease_type?.trim() ? (
+                <MetaRow label="Main disease type">
+                  {dataset.main_disease_type.trim()}
+                </MetaRow>
+              ) : null}
+
+              <MetaRow label="Id">
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-muted-foreground">
+                  {dataset.id}
+                </code>
+              </MetaRow>
+              <MetaRow label="Created by">{dataset.created_by}</MetaRow>
+              <MetaRow label="Created">
+                <span className="font-mono text-sm text-muted-foreground">
+                  {formatWhen(dataset.created_at)}
+                </span>
+              </MetaRow>
+              <MetaRow label="Updated">
+                <span className="font-mono text-sm text-muted-foreground">
+                  {formatWhen(dataset.updated_at)}
+                </span>
+              </MetaRow>
             </CardContent>
           </Card>
         </div>

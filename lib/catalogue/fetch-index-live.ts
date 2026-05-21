@@ -54,6 +54,15 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
   ) {
     return null;
   }
+  if (raw.phase !== undefined && typeof raw.phase !== "string") {
+    return null;
+  }
+  if (
+    raw.main_disease_type !== undefined &&
+    typeof raw.main_disease_type !== "string"
+  ) {
+    return null;
+  }
   return raw as unknown as DatasetCatalogueEntry;
 }
 

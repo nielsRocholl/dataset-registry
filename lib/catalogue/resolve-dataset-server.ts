@@ -3,17 +3,7 @@ import { cookies, headers } from "next/headers";
 import { getDatasetById } from "@/lib/catalogue/load-index";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 
-/**
- * Resolve a dataset for server-rendered pages: prefer build-time `generated/index.json`,
- * then same-origin GET of the catalogue API (GitHub-backed) when the index is stale —
- * e.g. after a write from this app before `git pull` / `generate:index`.
- */
-export async function getDatasetEntryServer(
-  id: string,
-): Promise<DatasetCatalogueEntry | undefined> {
-  const fromIndex = getDatasetById(id);
-  if (fromIndex) return fromIndex;
-
+async function catalogueFetch(path: string): Promise<Response | undefined> {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
@@ -27,11 +17,25 @@ export async function getDatasetEntryServer(
   const proto = h.get("x-forwarded-proto") ?? "http";
   const origin = `${proto}://${host}`;
 
-  const res = await fetch(`${origin}/api/catalogue/datasets/${id}`, {
+  return fetch(`${origin}${path}`, {
     cache: "no-store",
     headers: { Cookie: cookieHeader },
   });
-  if (!res.ok) return undefined;
+}
+
+/**
+ * Resolve a dataset for server-rendered pages: prefer build-time `generated/index.json`,
+ * then same-origin GET of the catalogue API (GitHub-backed) when the index is stale —
+ * e.g. after a write from this app before `git pull` / `generate:index`.
+ */
+export async function getDatasetEntryServer(
+  id: string,
+): Promise<DatasetCatalogueEntry | undefined> {
+  const fromIndex = getDatasetById(id);
+  if (fromIndex) return fromIndex;
+
+  const res = await catalogueFetch(`/api/catalogue/datasets/${id}`);
+  if (!res?.ok) return undefined;
 
   const data: unknown = await res.json().catch(() => null);
   if (
@@ -42,4 +46,13 @@ export async function getDatasetEntryServer(
     return undefined;
   }
   return data as DatasetCatalogueEntry;
+}
+
+export async function getDatasetDescriptionServer(
+  id: string,
+): Promise<string | null> {
+  const res = await catalogueFetch(`/api/catalogue/datasets/${id}/description`);
+  if (!res?.ok) return null;
+  const text = (await res.text()).trim();
+  return text || null;
 }

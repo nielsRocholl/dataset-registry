@@ -112,6 +112,8 @@ function buildPayload(
     anatomy_tags: string;
     task: Task[];
     is_longitudinal: boolean;
+    phase: string;
+    main_disease_type: string;
     annotation_types: AnnotationType[];
     access_level: AccessLevel;
     status: string;
@@ -174,6 +176,10 @@ function buildPayload(
     o.dimensionality = values.dimensionality as Dimensionality;
   }
   if (values.is_longitudinal) o.is_longitudinal = true;
+  if (values.phase.trim()) o.phase = values.phase.trim();
+  if (values.main_disease_type.trim()) {
+    o.main_disease_type = values.main_disease_type.trim();
+  }
   if (values.license.trim()) o.license = values.license.trim();
   if (values.access_notes.trim()) o.access_notes = values.access_notes.trim();
   if (values.original_authors.trim()) {
@@ -336,6 +342,10 @@ export function DatasetEditorForm(props: EditorProps) {
   const [is_longitudinal, setIsLongitudinal] = useState(
     initial?.is_longitudinal === true,
   );
+  const [phase, setPhase] = useState(initial?.phase ?? "");
+  const [main_disease_type, setMainDiseaseType] = useState(
+    initial?.main_disease_type ?? "",
+  );
   const [annotation_types, setAnnotationTypes] = useState<AnnotationType[]>(
     initial?.annotation_types ?? [],
   );
@@ -392,6 +402,7 @@ export function DatasetEditorForm(props: EditorProps) {
     setAnatomyTags("");
     setTask(fallbackTask ? [fallbackTask] : []);
     setIsLongitudinal(false);
+    setPhase("");
     setAnnotationTypes([]);
     setAccessLevel(fallbackAccess);
     setStatus(NONE);
@@ -618,6 +629,8 @@ export function DatasetEditorForm(props: EditorProps) {
       anatomy_tags,
       task,
       is_longitudinal,
+      phase,
+      main_disease_type,
       annotation_types,
       access_level,
       status,
@@ -902,7 +915,8 @@ export function DatasetEditorForm(props: EditorProps) {
                 placeholder="e.g. liver, portal-vein, pancreas"
               />
               <FieldDescription>
-                Comma-separated lowercase tags; spaces are normalized to hyphens.
+                Optional. Comma-separated lowercase tags; spaces are normalized to
+                hyphens.
               </FieldDescription>
             </Field>
 
@@ -952,6 +966,21 @@ export function DatasetEditorForm(props: EditorProps) {
                   {errors.anatomy}
                 </FieldError>
               ) : null}
+            </Field>
+
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor="dataset-main-disease-type">
+                Main disease type
+              </FieldLabel>
+              <Input
+                id="dataset-main-disease-type"
+                value={main_disease_type}
+                onChange={(e) => setMainDiseaseType(e.target.value)}
+                placeholder="e.g. hepatocellular carcinoma, COPD"
+              />
+              <FieldDescription>
+                Optional primary disease or condition focus for this dataset.
+              </FieldDescription>
             </Field>
 
             <Field className="sm:col-span-2">
@@ -1218,6 +1247,18 @@ export function DatasetEditorForm(props: EditorProps) {
             </ToggleGroup>
             <FieldDescription>
               Repeated scans or follow-up timepoints per patient or subject.
+            </FieldDescription>
+          </Field>
+          <Field className="mt-5">
+            <FieldLabel htmlFor="dataset-phase">Phase</FieldLabel>
+            <Input
+              id="dataset-phase"
+              value={phase}
+              onChange={(e) => setPhase(e.target.value)}
+              placeholder="e.g. arterial, portal venous, Phase II"
+            />
+            <FieldDescription>
+              Optional contrast or acquisition phase, or clinical trial phase.
             </FieldDescription>
           </Field>
         </FormSection>

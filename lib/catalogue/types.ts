@@ -18,6 +18,10 @@ export type DatasetCatalogueEntry = {
   anatomy_tags?: string[];
   task: Task[];
   is_longitudinal?: boolean;
+  /** Contrast/acquisition phase or clinical trial phase (optional free text). */
+  phase?: string;
+  /** Primary disease or condition focus (optional free text). */
+  main_disease_type?: string;
   annotation_types?: AnnotationType[];
   access_level: AccessLevel;
   created_by: string;
