@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-21T11:14:52.224Z",
+  "updated_at": "2026-05-21T11:14:59.212Z",
   "fields": {
     "modality": [
       {
@@ -7,12 +7,12 @@
         "label": "CT"
       },
       {
-        "value": "MRI",
-        "label": "MRI"
+        "value": "mixed",
+        "label": "Mixed"
       },
       {
-        "value": "other",
-        "label": "Other"
+        "value": "MRI",
+        "label": "MRI"
       },
       {
         "value": "pathology",
