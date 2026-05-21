@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2Icon,
   Loader2Icon,
@@ -27,10 +28,7 @@ import {
   CATALOGUE_SECTION_TITLE_ACCENT_CN,
   CATALOGUE_SECTION_TITLE_CN,
 } from "@/lib/catalogue/catalogue-surface-styles";
-import type {
-  ClassificationFieldId,
-  ClassificationVocabularyDoc,
-} from "@/lib/catalogue/classification-vocabulary";
+import type { ClassificationFieldId } from "@/lib/catalogue/classification-vocabulary";
 import {
   CLASSIFICATION_VOCABULARY_FIELDS,
   classificationFieldHumanTitle,
@@ -39,30 +37,15 @@ import { cn } from "@/lib/utils";
 
 type AddDialogPhase = "loading" | "success" | "error";
 
-function mergeVocabularyIntoRows(
-  prev: Record<ClassificationFieldId, ClassificationOptionRow[]>,
-  vocab: ClassificationVocabularyDoc,
-): Record<ClassificationFieldId, ClassificationOptionRow[]> {
-  const next = { ...prev };
+function isOptionsRecord(
+  x: unknown,
+): x is Record<ClassificationFieldId, ClassificationOptionRow[]> {
+  if (!x || typeof x !== "object") return false;
   for (const id of CLASSIFICATION_VOCABULARY_FIELDS) {
-    const usageByValue = new Map(
-      (prev[id] ?? []).map((r) => [r.value, r.usageCount] as const),
-    );
-    next[id] = vocab.fields[id].map((t) => ({
-      ...t,
-      usageCount: usageByValue.get(t.value) ?? 0,
-    }));
+    const bucket = (x as Record<string, unknown>)[id];
+    if (!Array.isArray(bucket)) return false;
   }
-  return next;
-}
-
-function isVocabularyDoc(x: unknown): x is ClassificationVocabularyDoc {
-  return (
-    !!x &&
-    typeof x === "object" &&
-    "fields" in x &&
-    typeof (x as ClassificationVocabularyDoc).fields === "object"
-  );
+  return true;
 }
 
 export type ClassificationOptionRow = {
@@ -76,6 +59,7 @@ export function AdminClassificationPanel({
 }: {
   initialOptions: Record<ClassificationFieldId, ClassificationOptionRow[]>;
 }) {
+  const router = useRouter();
   const [field, setField] =
     useState<ClassificationFieldId>("modality");
   const [rows, setRows] =
@@ -107,6 +91,20 @@ export function AdminClassificationPanel({
     return xs;
   }, [rows, field]);
 
+  const reloadOptions = useCallback(async () => {
+    const res = await fetch("/api/admin/classification", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const body: unknown = await res.json().catch(() => null);
+    if (!body || typeof body !== "object" || !("options" in body)) return null;
+    const options = (body as { options: unknown }).options;
+    if (!isOptionsRecord(options)) return null;
+    setRows(options);
+    return options;
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -124,8 +122,8 @@ export function AdminClassificationPanel({
       ) {
         return;
       }
-      const options = (body as { options: typeof rows }).options;
-      if (options) setRows(options);
+      const options = (body as { options: unknown }).options;
+      if (isOptionsRecord(options)) setRows(options);
     })();
     return () => {
       cancelled = true;
@@ -172,12 +170,13 @@ export function AdminClassificationPanel({
         return;
       }
 
-      if (body && typeof body === "object" && "vocabulary" in body) {
-        const vocab = (body as { vocabulary: unknown }).vocabulary;
-        if (isVocabularyDoc(vocab)) {
-          setRows((prev) => mergeVocabularyIntoRows(prev, vocab));
-        }
+      if (body && typeof body === "object" && "options" in body) {
+        const options = (body as { options: unknown }).options;
+        if (isOptionsRecord(options)) setRows(options);
+      } else {
+        await reloadOptions();
       }
+      router.refresh();
 
       setValueIn("");
       setLabelIn("");
@@ -211,7 +210,32 @@ export function AdminClassificationPanel({
       );
       const body: unknown = await res.json().catch(() => ({}));
       setDeleteTarget(null);
+
+      let fresh: Record<ClassificationFieldId, ClassificationOptionRow[]> | null =
+        null;
+      if (res.ok && body && typeof body === "object" && "options" in body) {
+        const options = (body as { options: unknown }).options;
+        if (isOptionsRecord(options)) {
+          setRows(options);
+          fresh = options;
+        }
+      }
+      if (!fresh) fresh = await reloadOptions();
+
       if (!res.ok) {
+        const stillPresent = (fresh ?? rows)[field]?.some(
+          (r) => r.value === row.value,
+        );
+        if (!stillPresent) {
+          setError(null);
+          router.refresh();
+          setExitingSlug(row.value);
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, 220);
+          });
+          setExitingSlug(null);
+          return;
+        }
         setError(
           body && typeof body === "object" && "error" in body
             ? String((body as { error: unknown }).error)
@@ -219,12 +243,9 @@ export function AdminClassificationPanel({
         );
         return;
       }
-      if (body && typeof body === "object" && "vocabulary" in body) {
-        const vocab = (body as { vocabulary: unknown }).vocabulary;
-        if (isVocabularyDoc(vocab)) {
-          setRows((prev) => mergeVocabularyIntoRows(prev, vocab));
-        }
-      }
+
+      setError(null);
+      router.refresh();
       setExitingSlug(row.value);
       await new Promise<void>((resolve) => {
         window.setTimeout(resolve, 220);

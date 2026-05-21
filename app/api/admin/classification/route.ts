@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 
-import type { ClassificationFieldId } from "@/lib/catalogue/classification-vocabulary";
+import type {
+  ClassificationFieldId,
+  ClassificationVocabularyDoc,
+} from "@/lib/catalogue/classification-vocabulary";
 import {
+  CLASSIFICATION_VOCABULARY_FIELDS,
   addClassificationTerm,
   countClassificationValueUsage,
   formatStableVocabularyJson,
@@ -10,6 +14,7 @@ import {
 } from "@/lib/catalogue/classification-vocabulary";
 import { requireCatalogueUser } from "@/lib/catalogue/access";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
+import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import {
   CLASSIFICATION_VOCABULARY_CACHE_TAG,
   fetchClassificationBlobMeta,
@@ -46,41 +51,51 @@ function classificationFieldGuard(x: unknown): x is ClassificationFieldId {
   );
 }
 
+export type ClassificationOptionRow = {
+  value: string;
+  label: string;
+  usageCount: number;
+};
+
+function buildClassificationOptions(
+  vocab: ClassificationVocabularyDoc,
+  datasets: DatasetCatalogueEntry[],
+): Record<ClassificationFieldId, ClassificationOptionRow[]> {
+  const options: Record<ClassificationFieldId, ClassificationOptionRow[]> = {
+    modality: [],
+    task: [],
+    body_region: [],
+    annotation_type: [],
+    status: [],
+    access_level: [],
+    dimensionality: [],
+  };
+  for (const id of CLASSIFICATION_VOCABULARY_FIELDS) {
+    for (const term of vocab.fields[id]) {
+      options[id].push({
+        ...term,
+        usageCount: countClassificationValueUsage(datasets, id, term.value),
+      });
+    }
+  }
+  return options;
+}
+
+function revalidateClassificationCache(): void {
+  try {
+    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, { expire: 0 });
+  } catch {
+    /* mutation already committed; do not fail the HTTP response */
+  }
+}
+
 export async function GET(request: Request) {
   const auth = await requireAdmin(request);
   if (!auth.ok) return auth.response;
   try {
     const vocab = await loadClassificationVocabularyUncached();
     const { datasets } = await fetchCatalogueIndexLive();
-    const fieldIds = [
-      "modality",
-      "task",
-      "body_region",
-      "annotation_type",
-      "status",
-      "access_level",
-      "dimensionality",
-    ] as const;
-    const options: Record<
-      ClassificationFieldId,
-      Array<{ value: string; label: string; usageCount: number }>
-    > = {
-      modality: [],
-      task: [],
-      body_region: [],
-      annotation_type: [],
-      status: [],
-      access_level: [],
-      dimensionality: [],
-    };
-    for (const id of fieldIds) {
-      for (const term of vocab.fields[id]) {
-        options[id].push({
-          ...term,
-          usageCount: countClassificationValueUsage(datasets, id, term.value),
-        });
-      }
-    }
+    const options = buildClassificationOptions(vocab, datasets);
     return NextResponse.json({ vocabulary: vocab, options });
   } catch {
     return NextResponse.json(
@@ -145,8 +160,10 @@ export async function POST(request: Request) {
       blobMeta.missing ? undefined : blobMeta.sha,
       msg,
     );
-    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, { expire: 0 });
-    return NextResponse.json({ vocabulary: next });
+    revalidateClassificationCache();
+    const { datasets } = await fetchCatalogueIndexLive();
+    const options = buildClassificationOptions(next, datasets);
+    return NextResponse.json({ vocabulary: next, options });
   } catch {
     return NextResponse.json(
       { error: "Could not commit classification vocabulary" },
@@ -202,8 +219,9 @@ export async function DELETE(request: Request) {
     }
     const msg = `chore(catalogue): remove ${fieldRaw} ${trimmed}`;
     await writeClassificationVocabularyToGitHub(text, blobMeta.sha, msg);
-    revalidateTag(CLASSIFICATION_VOCABULARY_CACHE_TAG, { expire: 0 });
-    return NextResponse.json({ vocabulary: next });
+    revalidateClassificationCache();
+    const options = buildClassificationOptions(next, datasets);
+    return NextResponse.json({ vocabulary: next, options });
   } catch {
     return NextResponse.json(
       { error: "Could not update classification vocabulary" },
