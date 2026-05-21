@@ -43,6 +43,9 @@
   --border-default: color-mix(in oklch, var(--neutral-900) 12%, transparent);
   --border-strong: color-mix(in oklch, var(--neutral-900) 20%, transparent);
 
+  /* Root rem scale (~15% below browser default); scales --text-* and Tailwind rem spacing. */
+  --font-size-root: 85%;
+
   --text-xs: 0.694rem;
   --text-sm: 0.833rem;
   --text-base: 1rem;
@@ -292,6 +295,7 @@
   }
 
   html {
+    font-size: var(--font-size-root);
     @apply font-sans;
     background: var(--background);
     -webkit-text-size-adjust: 100%;
