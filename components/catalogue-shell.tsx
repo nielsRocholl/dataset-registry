@@ -418,7 +418,7 @@ export function CatalogueShell({
           sidebarCollapsed ? "lg:pl-20" : "lg:pl-[23.5rem]",
         )}
       >
-        <div className="flex min-h-svh flex-col">{children}</div>
+        <div className="catalogue-main flex min-h-svh flex-col">{children}</div>
       </div>
     </div>
   );

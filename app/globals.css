@@ -43,8 +43,11 @@
   --border-default: color-mix(in oklch, var(--neutral-900) 12%, transparent);
   --border-strong: color-mix(in oklch, var(--neutral-900) 20%, transparent);
 
-  /* Root rem scale (~15% below browser default); scales --text-* and Tailwind rem spacing. */
-  --font-size-root: 76.5%;
+  /* Root rem scale; scales --text-* and Tailwind rem spacing app-wide. */
+  --font-scale: 0.765;
+  --font-size-root: calc(var(--font-scale) * 100%);
+  /* Main pane only — sidebar stays at root scale. */
+  --font-size-content: 90%;
 
   --text-xs: 0.694rem;
   --text-sm: 0.833rem;
@@ -325,6 +328,10 @@
   *:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+
+  .catalogue-main {
+    font-size: var(--font-size-content);
   }
 }
 
