@@ -9,6 +9,7 @@
       @slot;
     }
   }
+
   &:is(.dark *) {
     @slot;
   }
@@ -47,7 +48,7 @@
   --font-scale: 0.765;
   --font-size-root: calc(var(--font-scale) * 100%);
   /* Main pane only — sidebar stays at root scale. */
-  --font-size-content: 90%;
+  --font-size-content: 85%;
 
   --text-xs: 0.694rem;
   --text-sm: 0.833rem;
