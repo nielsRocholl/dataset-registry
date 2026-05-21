@@ -11,10 +11,13 @@ export type DatasetCatalogueEntry = {
   id: string;
   name: string;
   short_description: string;
-  internal_storage_path: string;
+  /** False when catalogued but files are not on group storage. Omitted means true. */
+  storage_on_server?: boolean;
+  internal_storage_path?: string;
   modality: Modality[];
-  anatomy: string;
-  body_regions?: BodyRegion[];
+  /** @deprecated Legacy free-text; use anatomy_tags. */
+  anatomy?: string;
+  body_regions: BodyRegion[];
   anatomy_tags?: string[];
   task: Task[];
   is_longitudinal?: boolean;
@@ -34,6 +37,8 @@ export type DatasetCatalogueEntry = {
   n_studies?: number;
   n_images?: number;
   dimensionality?: Dimensionality;
+  /** Scanner or acquisition device label (optional). */
+  scanner_type?: string;
   license?: string;
   access_notes?: string;
   /** Creators of the upstream resource (optional). */

@@ -145,10 +145,6 @@
       {
         "value": "public",
         "label": "Public"
-      },
-      {
-        "value": "restricted",
-        "label": "Restricted"
       }
     ],
     "status": [

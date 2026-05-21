@@ -22,8 +22,6 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
   const required = [
     "name",
     "short_description",
-    "internal_storage_path",
-    "anatomy",
     "access_level",
     "created_by",
     "created_at",
@@ -31,6 +29,26 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
   ] as const;
   for (const k of required) {
     if (!(k in raw) || typeof raw[k] !== "string") return null;
+  }
+  if (
+    raw.storage_on_server !== undefined &&
+    typeof raw.storage_on_server !== "boolean"
+  ) {
+    return null;
+  }
+  const onServer = raw.storage_on_server !== false;
+  if (onServer) {
+    if (
+      typeof raw.internal_storage_path !== "string" ||
+      raw.internal_storage_path.trim() === ""
+    ) {
+      return null;
+    }
+  } else if (
+    typeof raw.internal_storage_path === "string" &&
+    raw.internal_storage_path.trim() !== ""
+  ) {
+    return null;
   }
   const modality = raw.modality;
   if (
@@ -61,6 +79,17 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
     raw.main_disease_type !== undefined &&
     typeof raw.main_disease_type !== "string"
   ) {
+    return null;
+  }
+  const bodyRegions = raw.body_regions;
+  if (
+    !Array.isArray(bodyRegions) ||
+    bodyRegions.length === 0 ||
+    bodyRegions.some((r) => typeof r !== "string" || r.length === 0)
+  ) {
+    return null;
+  }
+  if (raw.scanner_type !== undefined && typeof raw.scanner_type !== "string") {
     return null;
   }
   return raw as unknown as DatasetCatalogueEntry;

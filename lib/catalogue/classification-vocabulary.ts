@@ -127,7 +127,9 @@ export function vocabularyValidationErrorsForDataset(
     }
   }
   const br = data.body_regions;
-  if (Array.isArray(br)) {
+  if (!Array.isArray(br) || br.length === 0) {
+    errs.push("body_regions: select at least one body region");
+  } else {
     const allow = allowedValueSet(doc, "body_region");
     for (const item of br) {
       if (typeof item === "string" && !allow.has(item)) {

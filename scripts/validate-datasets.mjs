@@ -73,7 +73,9 @@ function vocabErrors(data) {
     }
   }
   const br = data.body_regions;
-  if (Array.isArray(br)) {
+  if (!Array.isArray(br) || br.length === 0) {
+    out.push("body_regions: at least one required");
+  } else {
     const ok = vocabAllow("body_region");
     for (const item of br) {
       if (typeof item === "string" && !ok.has(item)) {
@@ -101,6 +103,24 @@ function vocabErrors(data) {
   )
     out.push(`dimensionality: unknown`);
   return out;
+}
+
+/** @param {Record<string, unknown>} data */
+function storageErrors(data) {
+  const onServer = data.storage_on_server !== false;
+  const path = data.internal_storage_path;
+  if (onServer) {
+    if (typeof path !== "string" || path.trim() === "") {
+      return ["internal_storage_path: required when data is on group storage"];
+    }
+    return [];
+  }
+  if (typeof path === "string" && path.trim() !== "") {
+    return [
+      "internal_storage_path: omit when catalogue entry is not on group storage",
+    ];
+  }
+  return [];
 }
 
 for (const key of VOCAB_FIELDS) {
@@ -143,6 +163,11 @@ for (const f of files.sort()) {
   const vocabBad = vocabErrors(data);
   if (vocabBad.length) {
     console.error(`${f}: vocabulary mismatch:`, vocabBad);
+    failed = true;
+  }
+  const storageBad = storageErrors(data);
+  if (storageBad.length) {
+    console.error(`${f}: storage:`, storageBad);
     failed = true;
   }
 }

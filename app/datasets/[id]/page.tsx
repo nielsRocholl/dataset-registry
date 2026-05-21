@@ -109,8 +109,6 @@ function AccessLevelBadge({ level, label }: { level: string; label: string }) {
           "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
         level === "public" &&
           "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
-        level === "restricted" &&
-          "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400",
       )}
     >
       {label}
@@ -332,19 +330,29 @@ export default async function DatasetDetailPage({
           <Card>
             <SectionCardHeader icon={FolderIcon} title="Storage" />
             <CardContent className="px-6 py-5">
-              <MetaRow label="Storage path">
-                <div className="flex min-w-0 items-start gap-1">
-                  <code className="min-w-0 flex-1 break-all rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-muted-foreground">
-                    {dataset.internal_storage_path}
-                  </code>
-                  <CopyClipboardButton
-                    text={dataset.internal_storage_path}
-                    label="Copy storage path"
-                    iconOnly
-                    className="mt-px shrink-0"
-                  />
-                </div>
-              </MetaRow>
+              {dataset.storage_on_server === false ? (
+                <p className="text-sm text-muted-foreground">
+                  Not on group storage — catalogue reference only.
+                </p>
+              ) : dataset.internal_storage_path ? (
+                <MetaRow label="Storage path">
+                  <div className="flex min-w-0 items-start gap-1">
+                    <code className="min-w-0 flex-1 break-all rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-muted-foreground">
+                      {dataset.internal_storage_path}
+                    </code>
+                    <CopyClipboardButton
+                      text={dataset.internal_storage_path}
+                      label="Copy storage path"
+                      iconOnly
+                      className="mt-px shrink-0"
+                    />
+                  </div>
+                </MetaRow>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Storage path not recorded.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -450,6 +458,11 @@ export default async function DatasetDetailPage({
               </MetaRow>
               {dataset.phase?.trim() ? (
                 <MetaRow label="Phase">{dataset.phase.trim()}</MetaRow>
+              ) : null}
+              {dataset.scanner_type?.trim() ? (
+                <MetaRow label="Scanner type">
+                  {dataset.scanner_type.trim()}
+                </MetaRow>
               ) : null}
               {dataset.main_disease_type?.trim() ? (
                 <MetaRow label="Main disease type">

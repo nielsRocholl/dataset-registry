@@ -74,14 +74,9 @@ type EditorProps =
     };
 
 // Fields that have required inline validation
-const TEXT_REQUIRED = [
-  "id",
-  "name",
-  "short_description",
-  "internal_storage_path",
-  "anatomy",
-] as const;
+const TEXT_REQUIRED = ["id", "name", "short_description"] as const;
 type RequiredTextField = (typeof TEXT_REQUIRED)[number];
+type StoragePathField = "internal_storage_path";
 
 function normalizeModalities(raw: unknown): Modality[] {
   if (Array.isArray(raw)) {
@@ -106,10 +101,11 @@ function buildPayload(
     name: string;
     short_description: string;
     internal_storage_path: string;
+    storage_on_server: boolean;
     modality: Modality[];
-    anatomy: string;
     body_regions: BodyRegion[];
     anatomy_tags: string;
+    scanner_type: string;
     task: Task[];
     is_longitudinal: boolean;
     phase: string;
@@ -138,17 +134,18 @@ function buildPayload(
     id,
     name: values.name.trim(),
     short_description: values.short_description.trim(),
-    internal_storage_path: values.internal_storage_path.trim(),
     modality: values.modality,
-    anatomy: values.anatomy.trim(),
+    body_regions: values.body_regions,
     task: values.task,
     access_level: values.access_level,
     created_by: initial?.created_by ?? "Current user",
     created_at: mode === "edit" && initial ? initial.created_at : now,
     updated_at: now,
   };
-  if (values.body_regions.length > 0) {
-    o.body_regions = values.body_regions;
+  if (values.storage_on_server) {
+    o.internal_storage_path = values.internal_storage_path.trim();
+  } else {
+    o.storage_on_server = false;
   }
   const anatomyTags = parseAnatomyTags(values.anatomy_tags);
   if (anatomyTags.length > 0) {
@@ -177,6 +174,7 @@ function buildPayload(
   }
   if (values.is_longitudinal) o.is_longitudinal = true;
   if (values.phase.trim()) o.phase = values.phase.trim();
+  if (values.scanner_type.trim()) o.scanner_type = values.scanner_type.trim();
   if (values.main_disease_type.trim()) {
     o.main_disease_type = values.main_disease_type.trim();
   }
@@ -222,6 +220,11 @@ function parseAnatomyTags(raw: string) {
   );
 }
 
+function storagePathError(value: string): string | null {
+  if (!value.trim()) return "Internal storage path is required.";
+  return null;
+}
+
 // Human-readable per-field error messages
 function fieldError(field: RequiredTextField, value: string, mode: "new" | "edit"): string | null {
   if (field === "id") {
@@ -235,8 +238,6 @@ function fieldError(field: RequiredTextField, value: string, mode: "new" | "edit
     id: "Id",
     name: "Name",
     short_description: "Description",
-    internal_storage_path: "Internal storage path",
-    anatomy: "Anatomy",
   };
   if (!value.trim()) return `${labels[field]} is required.`;
   return null;
@@ -321,21 +322,28 @@ export function DatasetEditorForm(props: EditorProps) {
   const [short_description, setShortDescription] = useState(
     initial?.short_description ?? "",
   );
+  const [storage_on_server, setStorageOnServer] = useState(
+    initial?.storage_on_server !== false,
+  );
   const [internal_storage_path, setInternalStoragePath] = useState(
-    initial?.internal_storage_path ?? "",
+    initial?.storage_on_server === false
+      ? ""
+      : (initial?.internal_storage_path ?? ""),
   );
   const [modality, setModality] = useState<Modality[]>(
     normalizeModalities(
       initial?.modality ?? (fallbackModality ? [fallbackModality] : []),
     ),
   );
-  const [anatomy, setAnatomy] = useState(initial?.anatomy ?? "");
   const [body_regions, setBodyRegions] = useState<BodyRegion[]>(
     initial?.body_regions ?? [],
   );
-  const [anatomy_tags, setAnatomyTags] = useState(
-    initial?.anatomy_tags?.join(", ") ?? "",
-  );
+  const [anatomy_tags, setAnatomyTags] = useState(() => {
+    if (initial?.anatomy_tags?.length) return initial.anatomy_tags.join(", ");
+    if (initial?.anatomy?.trim()) return initial.anatomy;
+    return "";
+  });
+  const [scanner_type, setScannerType] = useState(initial?.scanner_type ?? "");
   const [task, setTask] = useState<Task[]>(
     normalizeTasks(initial?.task ?? (fallbackTask ? [fallbackTask] : [])),
   );
@@ -380,10 +388,11 @@ export function DatasetEditorForm(props: EditorProps) {
 
   // Per-field touched state — errors only show after blur or submit attempt
   const [touched, setTouched] = useState<
-    Partial<Record<RequiredTextField, boolean>>
+    Partial<Record<RequiredTextField | StoragePathField, boolean>>
   >({});
   const [taskTouched, setTaskTouched] = useState(false);
   const [modalityTouched, setModalityTouched] = useState(false);
+  const [bodyRegionsTouched, setBodyRegionsTouched] = useState(false);
 
   const [pending, setPending] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -395,14 +404,15 @@ export function DatasetEditorForm(props: EditorProps) {
     setId("");
     setName("");
     setShortDescription("");
+    setStorageOnServer(true);
     setInternalStoragePath("");
     setModality(fallbackModality ? [fallbackModality] : []);
-    setAnatomy("");
     setBodyRegions([]);
     setAnatomyTags("");
     setTask(fallbackTask ? [fallbackTask] : []);
     setIsLongitudinal(false);
     setPhase("");
+    setScannerType("");
     setAnnotationTypes([]);
     setAccessLevel(fallbackAccess);
     setStatus(NONE);
@@ -421,15 +431,18 @@ export function DatasetEditorForm(props: EditorProps) {
     setTouched({});
     setTaskTouched(false);
     setModalityTouched(false);
+    setBodyRegionsTouched(false);
   }
 
-  function touch(field: RequiredTextField) {
+  function touch(field: RequiredTextField | StoragePathField) {
     setTouched((prev) => ({ ...prev, [field]: true }));
   }
 
   function touchAll() {
-    const all: Partial<Record<RequiredTextField, boolean>> = {};
+    const all: Partial<Record<RequiredTextField | StoragePathField, boolean>> =
+      {};
     for (const f of TEXT_REQUIRED) all[f] = true;
+    if (storage_on_server) all.internal_storage_path = true;
     setTouched(all);
     setTouchedUpstreamUrl(true);
   }
@@ -439,11 +452,14 @@ export function DatasetEditorForm(props: EditorProps) {
       id,
       name,
       short_description,
-      internal_storage_path,
-      anatomy,
     }),
-    [id, name, short_description, internal_storage_path, anatomy],
+    [id, name, short_description],
   );
+
+  const storagePathFieldError = useMemo(() => {
+    if (!storage_on_server || !touched.internal_storage_path) return null;
+    return storagePathError(internal_storage_path);
+  }, [storage_on_server, touched.internal_storage_path, internal_storage_path]);
 
   // Compute per-field errors only for touched fields
   const errors: Partial<Record<RequiredTextField, string>> = useMemo(() => {
@@ -459,6 +475,10 @@ export function DatasetEditorForm(props: EditorProps) {
   const taskError = taskTouched && task.length === 0 ? "Select at least one task." : null;
   const modalityError =
     modalityTouched && modality.length === 0 ? "Select at least one modality." : null;
+  const bodyRegionsError =
+    bodyRegionsTouched && body_regions.length === 0
+      ? "Select at least one body region."
+      : null;
 
   const upstreamUrlError = useMemo(() => {
     if (!touched_upstream_url) return null;
@@ -470,9 +490,11 @@ export function DatasetEditorForm(props: EditorProps) {
 
   const hasFieldErrors =
     Object.keys(errors).length > 0 ||
+    storagePathFieldError !== null ||
     upstreamUrlError !== null ||
     taskError !== null ||
-    modalityError !== null;
+    modalityError !== null ||
+    bodyRegionsError !== null;
 
   // Count empty required fields (for submit button hint)
   const emptyRequiredCount = useMemo(() => {
@@ -482,8 +504,9 @@ export function DatasetEditorForm(props: EditorProps) {
       const err = fieldError(f, fieldValues[f], mode);
       if (err) count++;
     }
+    if (storage_on_server && storagePathError(internal_storage_path)) count++;
     return count;
-  }, [fieldValues, mode]);
+  }, [fieldValues, mode, storage_on_server, internal_storage_path]);
 
   const requiredTextTotal = useMemo(() => {
     let n = 0;
@@ -491,8 +514,9 @@ export function DatasetEditorForm(props: EditorProps) {
       if (f === "id" && mode === "edit") continue;
       n++;
     }
+    if (storage_on_server) n++;
     return n;
-  }, [mode]);
+  }, [mode, storage_on_server]);
 
   const filledRequiredCount = Math.max(
     0,
@@ -573,20 +597,24 @@ export function DatasetEditorForm(props: EditorProps) {
     touchAll();
     setTaskTouched(true);
     setModalityTouched(true);
+    setBodyRegionsTouched(true);
 
     const taskEmpty = task.length === 0;
     const modalityEmpty = modality.length === 0;
+    const bodyRegionsEmpty = body_regions.length === 0;
 
     // Check for any required field violations first
-    const anyEmpty = TEXT_REQUIRED.some((f) => {
-      if (f === "id" && mode === "edit") return false;
-      return !!fieldError(f, fieldValues[f], mode);
-    });
+    const anyEmpty =
+      TEXT_REQUIRED.some((f) => {
+        if (f === "id" && mode === "edit") return false;
+        return !!fieldError(f, fieldValues[f], mode);
+      }) ||
+      (storage_on_server && !!storagePathError(internal_storage_path));
 
     const upstreamInvalid =
       upstream_url.trim() !== "" && !isValidOptionalHttpUrl(upstream_url);
 
-    if (anyEmpty || upstreamInvalid || taskEmpty || modalityEmpty) {
+    if (anyEmpty || upstreamInvalid || taskEmpty || modalityEmpty || bodyRegionsEmpty) {
       requestAnimationFrame(() => {
         const firstInvalid = formRef.current?.querySelector<HTMLElement>(
           "[aria-invalid='true'], [data-invalid='true']",
@@ -623,10 +651,11 @@ export function DatasetEditorForm(props: EditorProps) {
       name,
       short_description,
       internal_storage_path,
+      storage_on_server,
       modality,
-      anatomy,
       body_regions,
       anatomy_tags,
+      scanner_type,
       task,
       is_longitudinal,
       phase,
@@ -880,8 +909,13 @@ export function DatasetEditorForm(props: EditorProps) {
               )}
             </Field>
 
-            <Field className="sm:col-span-2">
-              <FieldLabel>Body regions</FieldLabel>
+            <Field
+              className="sm:col-span-2"
+              data-invalid={!!bodyRegionsError || undefined}
+            >
+              <FieldLabel>
+                Body regions <Req />
+              </FieldLabel>
               <ToggleGroup
                 multiple
                 aria-label="Body region tags"
@@ -901,9 +935,13 @@ export function DatasetEditorForm(props: EditorProps) {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              <FieldDescription>
-                Used for the visual body-map filters on the search page.
-              </FieldDescription>
+              {bodyRegionsError ? (
+                <FieldError>{bodyRegionsError}</FieldError>
+              ) : (
+                <FieldDescription>
+                  Used for the visual body-map filters on the search page.
+                </FieldDescription>
+              )}
             </Field>
 
             <Field className="sm:col-span-2">
@@ -944,28 +982,6 @@ export function DatasetEditorForm(props: EditorProps) {
               <FieldDescription>
                 Choose how the labels are represented, or leave empty when unknown.
               </FieldDescription>
-            </Field>
-
-            <Field className="sm:col-span-2" data-invalid={!!errors.anatomy || undefined}>
-              <FieldLabel htmlFor="dataset-anatomy">
-                Anatomy <Req />
-              </FieldLabel>
-              <Input
-                id="dataset-anatomy"
-                value={anatomy}
-                onChange={(e) => setAnatomy(e.target.value)}
-                onBlur={() => touch("anatomy")}
-                placeholder="e.g. lung, liver, brain"
-                aria-invalid={!!errors.anatomy}
-                aria-describedby={
-                  errors.anatomy ? "dataset-anatomy-error" : undefined
-                }
-              />
-              {errors.anatomy ? (
-                <FieldError id="dataset-anatomy-error">
-                  {errors.anatomy}
-                </FieldError>
-              ) : null}
             </Field>
 
             <Field className="sm:col-span-2">
@@ -1010,40 +1026,77 @@ export function DatasetEditorForm(props: EditorProps) {
           description="Record where the data lives and who can use it."
         >
           <FieldGroup className="gap-5">
-            <Field data-invalid={!!errors.internal_storage_path || undefined}>
-              <FieldLabel htmlFor="dataset-path">
-                Internal storage path <Req />
-              </FieldLabel>
-              <div className="relative">
-                <FolderIcon
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/40 dark:text-white/25"
-                  aria-hidden
-                />
-                <Input
-                  id="dataset-path"
-                  value={internal_storage_path}
-                  onChange={(e) => setInternalStoragePath(e.target.value)}
-                  onBlur={() => touch("internal_storage_path")}
-                  className="bg-muted/40 pl-9 font-mono text-sm dark:bg-[#252523]"
-                  placeholder="/mnt/diag-data/datasets/lidc-idri"
-                  aria-invalid={!!errors.internal_storage_path}
-                  aria-describedby={
-                    errors.internal_storage_path
-                      ? "dataset-path-error"
-                      : "dataset-path-desc"
+            <Field>
+              <FieldLabel>Data location</FieldLabel>
+              <ToggleGroup
+                aria-label="Data location"
+                className="flex w-full flex-wrap gap-2"
+                value={storage_on_server ? [] : ["off_server"]}
+                onValueChange={(vals) => {
+                  const off = vals.includes("off_server");
+                  setStorageOnServer(!off);
+                  if (off) {
+                    setInternalStoragePath("");
+                    setTouched((prev) => {
+                      const next = { ...prev };
+                      delete next.internal_storage_path;
+                      return next;
+                    });
                   }
-                />
-              </div>
-              {errors.internal_storage_path ? (
-                <FieldError id="dataset-path-error">
-                  {errors.internal_storage_path}
-                </FieldError>
-              ) : (
-                <FieldDescription id="dataset-path-desc">
-                  Canonical path on the group storage server.
-                </FieldDescription>
-              )}
+                }}
+              >
+                <ToggleGroupItem
+                  value="off_server"
+                  className={FORM_TOGGLE_CHIP_CN}
+                >
+                  Not on group storage
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <FieldDescription>
+                {storage_on_server
+                  ? "Files are stored on institute storage — provide the canonical path below."
+                  : "Catalogue reference only; files are not on institute storage."}
+              </FieldDescription>
             </Field>
+
+            {storage_on_server ? (
+              <Field
+                data-invalid={!!storagePathFieldError || undefined}
+              >
+                <FieldLabel htmlFor="dataset-path">
+                  Internal storage path <Req />
+                </FieldLabel>
+                <div className="relative">
+                  <FolderIcon
+                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/40 dark:text-white/25"
+                    aria-hidden
+                  />
+                  <Input
+                    id="dataset-path"
+                    value={internal_storage_path}
+                    onChange={(e) => setInternalStoragePath(e.target.value)}
+                    onBlur={() => touch("internal_storage_path")}
+                    className="bg-muted/40 pl-9 font-mono text-sm dark:bg-[#252523]"
+                    placeholder="/mnt/diag-data/datasets/lidc-idri"
+                    aria-invalid={!!storagePathFieldError}
+                    aria-describedby={
+                      storagePathFieldError
+                        ? "dataset-path-error"
+                        : "dataset-path-desc"
+                    }
+                  />
+                </div>
+                {storagePathFieldError ? (
+                  <FieldError id="dataset-path-error">
+                    {storagePathFieldError}
+                  </FieldError>
+                ) : (
+                  <FieldDescription id="dataset-path-desc">
+                    Canonical path on the group storage server.
+                  </FieldDescription>
+                )}
+              </Field>
+            ) : null}
 
             <FieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
               <Field className="min-w-0">
@@ -1259,6 +1312,18 @@ export function DatasetEditorForm(props: EditorProps) {
             />
             <FieldDescription>
               Optional contrast or acquisition phase, or clinical trial phase.
+            </FieldDescription>
+          </Field>
+          <Field className="mt-5">
+            <FieldLabel htmlFor="dataset-scanner-type">Scanner type</FieldLabel>
+            <Input
+              id="dataset-scanner-type"
+              value={scanner_type}
+              onChange={(e) => setScannerType(e.target.value)}
+              placeholder="e.g. Siemens SOMATOM Force CT"
+            />
+            <FieldDescription>
+              Optional scanner or acquisition device label.
             </FieldDescription>
           </Field>
         </FormSection>

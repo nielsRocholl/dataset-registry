@@ -6,7 +6,15 @@
   "modality": [
     "CT"
   ],
-  "anatomy": "lung, liver, kidney, brain",
+  "body_regions": [
+    "whole_body"
+  ],
+  "anatomy_tags": [
+    "lung",
+    "liver",
+    "kidney",
+    "brain"
+  ],
   "task": [
     "tracking",
     "segmentation",
@@ -16,9 +24,6 @@
   "created_by": "Niels Rocholl",
   "created_at": "2026-05-21T05:55:27.242Z",
   "updated_at": "2026-05-21T08:41:12.255Z",
-  "body_regions": [
-    "whole_body"
-  ],
   "annotation_types": [
     "voxel_mask",
     "other"
@@ -31,6 +36,7 @@
   "n_images": 600,
   "dimensionality": "3D",
   "is_longitudinal": true,
+  "scanner_type": "Siemens CT (Sensation 64, SOMATOM Definition AS/Flash/Force, Biograph128)",
   "main_disease_type": "Melonoma",
   "license": "Creative Commons Attribution 4.0 International",
   "access_notes": "easy download, no approval required",

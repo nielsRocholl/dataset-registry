@@ -11,7 +11,7 @@ New values should use lowercase slugs: `^[a-z0-9][a-z0-9_-]*$`. Legacy catalogue
 ## Conventions
 
 - **Filename:** one JSON file per dataset: `datasets/<id>.json` where `<id>` equals the JSON `id` property (stem only, no slashes).
-- **Paths:** `internal_storage_path` is the location on **group storage** (not a patient folder name). Prefer a mount-relative POSIX path documented by the lab, e.g. `/group/datasets/abdominal-ct-2024/`. Avoid patient identifiers or free-text PHI in segments.
+- **Paths:** When `storage_on_server` is true or omitted, `internal_storage_path` is the location on **group storage** (not a patient folder name). Prefer a mount-relative POSIX path documented by the lab, e.g. `/group/datasets/abdominal-ct-2024/`. Avoid patient identifiers or free-text PHI in segments. When `storage_on_server` is `false`, omit `internal_storage_path` — the entry is catalogue-only.
 - **Timestamps:** `created_at` and `updated_at` are ISO 8601 with timezone, e.g. `2026-05-07T14:30:00+02:00`. Schema uses `format: date-time`.
 
 ## Identity (required)
@@ -28,9 +28,15 @@ Lifecycle hint—not required for v1 forms.
 
 Example: `"active"`
 
-## Storage (required)
+## Storage
 
-### `internal_storage_path`
+### `storage_on_server` (optional, default true)
+
+When `false`, the dataset is catalogued for reference but files are **not** on institute storage. Omit `internal_storage_path` in that case.
+
+Example: `false`
+
+### `internal_storage_path` (required when `storage_on_server` is not `false`)
 
 Canonical server path string for findability inside the institute.
 
@@ -44,15 +50,9 @@ Controlled vocabulary (`config/classification-vocabulary.json`); defaults are se
 
 Example: `["CT", "MRI"]`
 
-### `anatomy`
+### `body_regions` (required)
 
-Organ, structure, or site; normalize when the group maintains a vocabulary.
-
-Example: `"liver"`
-
-### `body_regions` (optional)
-
-Broad anatomical regions for filtering. Prefer values from vocabulary (see Classification vocabulary above).
+Broad anatomical regions for filtering. Select at least one value from vocabulary (see Classification vocabulary above).
 
 Example: `["abdomen"]`
 
@@ -111,11 +111,17 @@ Free-text contrast or acquisition phase (e.g. arterial, portal venous, delayed) 
 
 Example: `"arterial"`
 
+### `scanner_type` (optional)
+
+Scanner or acquisition device label (free text).
+
+Example: `"Siemens SOMATOM Force CT"`
+
 ## Access (required + optional)
 
 ### `access_level` (required)
 
-`public` \| `internal` \| `restricted`
+`public` \| `internal` (controlled vocabulary)
 
 Example: `"internal"`
 

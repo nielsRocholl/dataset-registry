@@ -21,7 +21,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { getDatasetModalities, getDatasetTasks, formatAnatomyTagLabel } from "@/lib/catalogue/filters";
+import {
+  formatAnatomyTagLabel,
+  getDatasetAnatomyTags,
+  getDatasetModalities,
+  getDatasetTasks,
+} from "@/lib/catalogue/filters";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import {
   CATALOGUE_CHIP_AUTHOR_CN,
@@ -256,7 +261,12 @@ export function DatasetBrowse({
           <>
             <ul className="flex w-full flex-col gap-2.5">
               {datasets.map((dataset) => {
-                const footerLine = [dataset.id, dataset.anatomy, scaleLabel(dataset)]
+                const anatomySummary = getDatasetAnatomyTags(dataset)
+                  .map(formatAnatomyTagLabel)
+                  .join(", ");
+                const regionSummary = dataset.body_regions.join(", ");
+                const scopeSummary = anatomySummary || regionSummary;
+                const footerLine = [dataset.id, scopeSummary, scaleLabel(dataset)]
                   .filter(Boolean)
                   .join(" · ");
                 return (

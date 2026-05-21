@@ -136,8 +136,6 @@ export function getFilterChipIcon(
           return chip(Globe);
         case "internal":
           return chip(Building2);
-        case "restricted":
-          return chip(Lock);
         default:
           return chip(Lock);
       }

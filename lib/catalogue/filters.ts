@@ -202,10 +202,7 @@ function normalizedExplicitTags(dataset: DatasetCatalogueEntry) {
 }
 
 export function getDatasetAnatomyTags(dataset: DatasetCatalogueEntry) {
-  const explicit = normalizedExplicitTags(dataset);
-  if (explicit.length > 0) return explicit;
-  const fallback = normalizeAnatomyTag(dataset.anatomy);
-  return fallback ? [fallback] : [];
+  return normalizedExplicitTags(dataset);
 }
 
 export function getDatasetModalities(dataset: DatasetCatalogueEntry): string[] {
@@ -219,11 +216,10 @@ export function getDatasetBodyRegions(
   dataset: DatasetCatalogueEntry,
   vocab?: ClassificationVocabularyDoc,
 ): BodyRegion[] {
-  if (dataset.body_regions?.length) return dataset.body_regions;
+  if (dataset.body_regions.length > 0) return dataset.body_regions;
 
   const haystack = textForMatching(
     [
-      dataset.anatomy,
       dataset.name,
       dataset.short_description,
       ...getDatasetModalities(dataset),
@@ -377,7 +373,7 @@ export function datasetMatchesText(
     dataset.name,
     dataset.short_description,
     dataset.original_authors,
-    dataset.anatomy,
+    dataset.scanner_type,
     ...modalities,
     ...modalities.map((value) => vocabularyLabel(vocab, "modality", value)),
     ...tasks,

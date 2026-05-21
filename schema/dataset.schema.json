@@ -8,9 +8,8 @@
     "id",
     "name",
     "short_description",
-    "internal_storage_path",
     "modality",
-    "anatomy",
+    "body_regions",
     "task",
     "access_level",
     "created_by",
@@ -32,11 +31,14 @@
       "maxLength": 2000,
       "description": "Catalogue description for list and detail summary; need not be brief (UI label: Description)."
     },
+    "storage_on_server": {
+      "type": "boolean",
+      "description": "When false, the dataset is catalogued but files are not on group storage; internal_storage_path must be omitted."
+    },
     "internal_storage_path": {
       "type": "string",
-      "minLength": 1,
       "maxLength": 2048,
-      "description": "Canonical path on the group storage server; see docs/metadata_guidelines.md."
+      "description": "Canonical path on the group storage server when storage_on_server is true or omitted; see docs/metadata_guidelines.md."
     },
     "modality": {
       "type": "array",
@@ -54,7 +56,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 512,
-      "description": "Organ, region, or anatomical scope; normalize when possible."
+      "description": "Deprecated legacy free-text field; prefer anatomy_tags and body_regions. Omit on new entries."
     },
     "body_regions": {
       "type": "array",
@@ -63,8 +65,9 @@
         "minLength": 1,
         "maxLength": 64
       },
+      "minItems": 1,
       "uniqueItems": true,
-      "description": "Optional broad anatomical regions for filter accuracy."
+      "description": "Broad anatomical regions for filter accuracy (controlled vocabulary)."
     },
     "anatomy_tags": {
       "type": "array",
@@ -131,6 +134,12 @@
       "maxLength": 128,
       "description": "Optional contrast or acquisition phase (e.g. arterial, portal venous) or clinical trial phase label."
     },
+    "scanner_type": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Optional scanner or acquisition device label (e.g. Siemens SOMATOM Force CT)."
+    },
     "main_disease_type": {
       "type": "string",
       "minLength": 1,
@@ -191,5 +200,21 @@
       "type": "string",
       "format": "date-time"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "not": {
+          "properties": { "storage_on_server": { "const": false } },
+          "required": ["storage_on_server"]
+        }
+      },
+      "then": {
+        "required": ["internal_storage_path"],
+        "properties": {
+          "internal_storage_path": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  ]
 }

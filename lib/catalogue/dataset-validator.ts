@@ -8,6 +8,24 @@ import schema from "@/schema/dataset.schema.json";
 
 type DatasetRecord = Record<string, unknown>;
 
+/** Path required unless explicitly catalogued off-server. */
+export function storageConsistencyErrors(data: DatasetRecord): string[] {
+  const onServer = data.storage_on_server !== false;
+  const path = data.internal_storage_path;
+  if (onServer) {
+    if (typeof path !== "string" || path.trim() === "") {
+      return ["internal_storage_path: required when data is on group storage"];
+    }
+    return [];
+  }
+  if (typeof path === "string" && path.trim() !== "") {
+    return [
+      "internal_storage_path: omit when catalogue entry is not on group storage",
+    ];
+  }
+  return [];
+}
+
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const validateAgainstSchema = ajv.compile(schema);
@@ -36,6 +54,10 @@ export function validateDatasetPayload(
   const rec = data as DatasetRecord;
   if (typeof rec.id !== "string" || rec.id !== pathSegmentId) {
     return { ok: false, idMismatch: true, pathSegmentId };
+  }
+  const storageErrs = storageConsistencyErrors(rec);
+  if (storageErrs.length > 0) {
+    return { ok: false, vocabularyErrors: storageErrs };
   }
   const vErrs = vocabularyValidationErrorsForDataset(rec, vocabulary);
   if (vErrs.length > 0) {
