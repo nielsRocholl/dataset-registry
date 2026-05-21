@@ -1,42 +1,6 @@
 {
-  "generated_at": "2026-05-21T08:44:26.753Z",
+  "generated_at": "2026-05-21T10:50:55.319Z",
   "datasets": [
-    {
-      "id": "example-liver-ct-seg",
-      "name": "Example liver CT segmentation benchmark",
-      "short_description": "Curated abdominal CT subset for benchmarking liver organ segmentation; synthetic-style metadata for catalogue testing only.",
-      "internal_storage_path": "/group/proj-data/example-liver-ct-seg/",
-      "modality": [
-        "CT"
-      ],
-      "anatomy": "liver",
-      "body_regions": [
-        "abdomen"
-      ],
-      "anatomy_tags": [
-        "liver"
-      ],
-      "task": [
-        "segmentation"
-      ],
-      "annotation_types": [
-        "voxel_mask"
-      ],
-      "access_level": "internal",
-      "status": "active",
-      "n_patients": 120,
-      "n_studies": 340,
-      "n_images": 12800,
-      "dimensionality": "3D",
-      "license": "Internal use only",
-      "access_notes": "Contact the group data steward; no public download.",
-      "original_authors": "Illustrative upstream authors (synthetic example)",
-      "bibtex_citation": "@misc{example-liver-ct-seg,\n  title={Example liver CT benchmark},\n  note={Synthetic catalogue fixture}\n}",
-      "upstream_url": "https://example.com/datasets/example-liver-ct-seg",
-      "created_by": "dataset-registry-ci",
-      "created_at": "2026-05-07T12:00:00Z",
-      "updated_at": "2026-05-07T12:00:00Z"
-    },
     {
       "id": "longitudinal-ct",
       "name": "Longitudinal CT",
@@ -54,7 +18,7 @@
       "access_level": "internal",
       "created_by": "Niels Rocholl",
       "created_at": "2026-05-21T05:55:27.242Z",
-      "updated_at": "2026-05-21T06:29:50.799Z",
+      "updated_at": "2026-05-21T08:41:12.255Z",
       "body_regions": [
         "whole_body"
       ],
@@ -73,40 +37,9 @@
       "main_disease_type": "Melonoma",
       "license": "Creative Commons Attribution 4.0 International",
       "access_notes": "easy download, no approval required",
+      "original_authors": "Küstner, Thomas, Peisen, Felix, Gatidis, Sergios, Wagner, Andreas, Megne, Ornela, Othman, Ahmed, Sanner, Antoine, Loßau, Tanja, Moltz, Jan Hendrik, Kohlbrandt, Temke, Hering, Alessa",
       "bibtex_citation": "@dataset{kuestner2025longitudinalct,\n  author    = {K{\\\"u}stner, Thomas and Peisen, Florian and Gatidis, Sergios and Wagner, Andreas and Megne, Oumou and Othman, Ahmed and Sanner, Alexander and Lo{\\ss}au, Till and Moltz, Jan H. and Kohlbrandt, Thorsten and Hering, Alessa},\n  title     = {{Longitudinal-CT}},\n  publisher = {University of T{\\\"u}bingen},\n  year      = {2025},\n  month     = sep,\n  day       = {16},\n  doi       = {10.57754/FDAT.75kj1-64747},\n  url       = {https://doi.org/10.57754/FDAT.75kj1-64747}\n}",
       "upstream_url": "https://fdat.uni-tuebingen.de/records/75kj1-64747"
-    },
-    {
-      "id": "test-ds",
-      "name": "Test dataset",
-      "short_description": "a test dataset",
-      "internal_storage_path": "/test",
-      "modality": [
-        "mixed"
-      ],
-      "anatomy": "lung, liver",
-      "task": [
-        "segmentation"
-      ],
-      "access_level": "public",
-      "created_by": "Niels Rocholl",
-      "created_at": "2026-05-20T11:06:12.613Z",
-      "updated_at": "2026-05-20T11:06:12.613Z",
-      "body_regions": [
-        "abdomen",
-        "head_neck"
-      ],
-      "annotation_types": [
-        "voxel_mask"
-      ],
-      "status": "active",
-      "n_patients": 50,
-      "n_studies": 1,
-      "n_images": 200,
-      "dimensionality": "3D",
-      "upstream_url": "https://dataset-registry.vercel.app/datasets/new",
-      "created_by_user_id": "4a83698c-dd44-43dd-9e75-1d2bc773b440",
-      "created_by_email": "nielsrocholl@gmail.com"
     }
   ]
 }

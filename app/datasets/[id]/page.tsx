@@ -12,6 +12,7 @@ import {
   ShieldCheckIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { BibtexCitationBlock } from "@/components/bibtex-citation-block";
 import { CopyClipboardButton } from "@/components/copy-clipboard-button";
@@ -321,7 +322,9 @@ export default async function DatasetDetailPage({
             <Card>
               <SectionCardHeader icon={BookOpenIcon} title="Description" />
               <CardContent className="prose prose-sm dark:prose-invert max-w-none px-6 py-5">
-                <ReactMarkdown>{markdownContent}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {markdownContent}
+                </ReactMarkdown>
               </CardContent>
             </Card>
           ) : null}
