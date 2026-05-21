@@ -44,7 +44,7 @@
   --border-strong: color-mix(in oklch, var(--neutral-900) 20%, transparent);
 
   /* Root rem scale (~15% below browser default); scales --text-* and Tailwind rem spacing. */
-  --font-size-root: 85%;
+  --font-size-root: 76.5%;
 
   --text-xs: 0.694rem;
   --text-sm: 0.833rem;
