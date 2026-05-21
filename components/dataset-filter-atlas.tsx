@@ -34,8 +34,6 @@ import {
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 import { cn } from "@/lib/utils";
 
-const SPARSE_ANATOMY_THRESHOLD = 4;
-
 type DatasetFilterAtlasProps = {
   datasets: DatasetCatalogueEntry[];
   filters: DatasetFilterState;
@@ -70,8 +68,6 @@ type FilterGroupSpec = {
   options: FilterOption[];
   /** Vocabulary-driven groups show every term even with zero matching datasets. */
   showAllVocabularyOptions?: boolean;
-  /** When set, anatomy filters render under Body map instead of standalone. */
-  embedAnatomy?: FilterOption[];
 };
 
 type BlueprintRow = (typeof GROUP_BLUEPRINT)[number];
@@ -160,8 +156,6 @@ function selectAllWithPositiveMargins(
 
   for (const g of groups) {
     if (g.options.length > 0) pickPositive(g.id, g.options);
-    if (g.embedAnatomy?.length)
-      pickPositive("anatomyTags", g.embedAnatomy);
   }
 
   return next;
@@ -350,24 +344,6 @@ function FilterGroup({
         showAllVocabularyOptions={group.showAllVocabularyOptions}
         onFiltersChange={onFiltersChange}
       />
-      {group.embedAnatomy && group.embedAnatomy.length > 0 ? (
-        <div className="mt-6 space-y-1.5">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50">
-            Organs
-          </p>
-          <ToggleRow
-            ariaLabel="Organ filters"
-            datasets={datasets}
-            filters={filters}
-            excludeMode={excludeMode}
-            groupId="anatomyTags"
-            options={group.embedAnatomy}
-            query={query}
-            vocabulary={vocabulary}
-            onFiltersChange={onFiltersChange}
-          />
-        </div>
-      ) : null}
     </FieldSet>
   );
 }
@@ -400,38 +376,19 @@ export function DatasetFilterAtlas({
 
   const anatomyOptions = getAnatomyFilterOptions(datasets);
   const activeCount = getActiveFilterCount(filters);
-  const embedAnatomy =
-    anatomyOptions.length > 0 &&
-    anatomyOptions.length <= SPARSE_ANATOMY_THRESHOLD
-      ? anatomyOptions
-      : undefined;
 
-  const baseGroups = primarySpecs.map((g) =>
-    g.id === "bodyRegions" && embedAnatomy
-      ? { ...g, embedAnatomy }
-      : g,
-  );
-
-  const groups: FilterGroupSpec[] =
-    embedAnatomy
-      ? baseGroups
-      : [
-          ...primarySpecs.slice(0, 2),
-          ...(anatomyOptions.length > 0
-            ? [
-                {
-                  id: "anatomyTags" as const,
-                  title: "Organs",
-                  options: anatomyOptions,
-                },
-              ]
-            : []),
-          ...primarySpecs.slice(2),
-        ].map((g) =>
-          g.id === "bodyRegions"
-            ? { ...g, embedAnatomy: undefined }
-            : g,
-        );
+  const groups: FilterGroupSpec[] = useMemo(() => {
+    if (anatomyOptions.length === 0) return primarySpecs;
+    return [
+      ...primarySpecs.slice(0, 2),
+      {
+        id: "anatomyTags" as const,
+        title: "Organs",
+        options: anatomyOptions,
+      },
+      ...primarySpecs.slice(2),
+    ];
+  }, [anatomyOptions, primarySpecs]);
 
   const matchOpts: FilterMatchOptions = { excludeMode };
 
