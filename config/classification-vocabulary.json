@@ -1,14 +1,10 @@
 {
-  "updated_at": "2026-05-21T11:14:59.212Z",
+  "updated_at": "2026-05-21T11:16:02.227Z",
   "fields": {
     "modality": [
       {
         "value": "CT",
         "label": "CT"
-      },
-      {
-        "value": "mixed",
-        "label": "Mixed"
       },
       {
         "value": "MRI",
