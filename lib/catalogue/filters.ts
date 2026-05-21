@@ -376,6 +376,7 @@ export function datasetMatchesText(
     dataset.id,
     dataset.name,
     dataset.short_description,
+    dataset.original_authors,
     dataset.anatomy,
     ...modalities,
     ...modalities.map((value) => vocabularyLabel(vocab, "modality", value)),
