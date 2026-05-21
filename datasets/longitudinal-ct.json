@@ -15,7 +15,7 @@
   "access_level": "internal",
   "created_by": "Niels Rocholl",
   "created_at": "2026-05-21T05:55:27.242Z",
-  "updated_at": "2026-05-21T05:55:27.242Z",
+  "updated_at": "2026-05-21T06:29:50.799Z",
   "body_regions": [
     "whole_body"
   ],
@@ -23,16 +23,17 @@
     "voxel_mask",
     "other"
   ],
+  "created_by_user_id": "4a83698c-dd44-43dd-9e75-1d2bc773b440",
+  "created_by_email": "nielsrocholl@gmail.com",
   "status": "active",
   "n_patients": 300,
   "n_studies": 2,
   "n_images": 600,
   "dimensionality": "3D",
   "is_longitudinal": true,
+  "main_disease_type": "Melonoma",
   "license": "Creative Commons Attribution 4.0 International",
   "access_notes": "easy download, no approval required",
   "bibtex_citation": "@dataset{kuestner2025longitudinalct,\n  author    = {K{\\\"u}stner, Thomas and Peisen, Florian and Gatidis, Sergios and Wagner, Andreas and Megne, Oumou and Othman, Ahmed and Sanner, Alexander and Lo{\\ss}au, Till and Moltz, Jan H. and Kohlbrandt, Thorsten and Hering, Alessa},\n  title     = {{Longitudinal-CT}},\n  publisher = {University of T{\\\"u}bingen},\n  year      = {2025},\n  month     = sep,\n  day       = {16},\n  doi       = {10.57754/FDAT.75kj1-64747},\n  url       = {https://doi.org/10.57754/FDAT.75kj1-64747}\n}",
-  "upstream_url": "https://fdat.uni-tuebingen.de/records/75kj1-64747",
-  "created_by_user_id": "4a83698c-dd44-43dd-9e75-1d2bc773b440",
-  "created_by_email": "nielsrocholl@gmail.com"
+  "upstream_url": "https://fdat.uni-tuebingen.de/records/75kj1-64747"
 }
