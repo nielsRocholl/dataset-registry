@@ -47,8 +47,8 @@
   /* Root rem scale; scales --text-* and Tailwind rem spacing app-wide. */
   --font-scale: 0.765;
   --font-size-root: calc(var(--font-scale) * 100%);
-  /* Main pane only — sidebar stays at root scale. */
-  --font-size-content: 85%;
+  /* Main pane only — zoom scales rem layout + typography in subtree; sidebar stays at root. */
+  --content-zoom: 0.9;
 
   --text-xs: 0.694rem;
   --text-sm: 0.833rem;
@@ -332,7 +332,7 @@
   }
 
   .catalogue-main {
-    font-size: var(--font-size-content);
+    zoom: var(--content-zoom);
   }
 }
 
