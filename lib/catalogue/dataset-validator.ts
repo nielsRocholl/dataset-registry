@@ -26,6 +26,37 @@ export function storageConsistencyErrors(data: DatasetRecord): string[] {
   return [];
 }
 
+const SCHEMA_KEYS = new Set(Object.keys(schema.properties));
+
+/** Drop legacy/extra keys before schema validation (e.g. n_images from parent clone). */
+export function pickDatasetSchemaFields(data: DatasetRecord): DatasetRecord {
+  const o: DatasetRecord = {};
+  for (const key of SCHEMA_KEYS) {
+    if (key in data && data[key] !== undefined) o[key] = data[key];
+  }
+  return o;
+}
+
+export function formatDatasetValidationError(
+  result: DatasetValidationErr,
+): string {
+  if ("vocabularyErrors" in result) {
+    return result.vocabularyErrors.join(" ");
+  }
+  if ("errors" in result) {
+    return result.errors
+      .map((e) => {
+        const path = e.instancePath ? e.instancePath.slice(1) : "dataset";
+        return path ? `${path}: ${e.message}` : e.message ?? "invalid";
+      })
+      .join(" ");
+  }
+  if ("idMismatch" in result) {
+    return `Dataset id must equal "${result.pathSegmentId}".`;
+  }
+  return "Validation failed.";
+}
+
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const validateAgainstSchema = ajv.compile(schema);
@@ -45,13 +76,27 @@ export function validateDatasetPayload(
   pathSegmentId: string,
   vocabulary: ClassificationVocabularyDoc,
 ): DatasetValidationResult {
-  if (!validateAgainstSchema(data)) {
+  if (typeof data !== "object" || data === null) {
+    return {
+      ok: false,
+      errors: [
+        {
+          instancePath: "",
+          schemaPath: "",
+          keyword: "type",
+          params: { type: "object" },
+          message: "must be object",
+        } as ErrorObject,
+      ],
+    };
+  }
+  const rec = pickDatasetSchemaFields(data as DatasetRecord);
+  if (!validateAgainstSchema(rec)) {
     return {
       ok: false,
       errors: (validateAgainstSchema.errors ?? []) as ErrorObject[],
     };
   }
-  const rec = data as DatasetRecord;
   if (typeof rec.id !== "string" || rec.id !== pathSegmentId) {
     return { ok: false, idMismatch: true, pathSegmentId };
   }

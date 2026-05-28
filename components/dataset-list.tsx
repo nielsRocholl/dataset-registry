@@ -7,6 +7,7 @@ import { AsteriskIcon, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DatasetFilterAtlas } from "@/components/dataset-filter-atlas";
+import { DerivativeCountBadge } from "@/components/derivative-count-badge";
 import { DatasetStarButton } from "@/components/dataset-star-button";
 import { MedicalIcon, type MedicalIconName } from "@/components/medical-icon";
 import {
@@ -31,6 +32,7 @@ import {
 } from "@/lib/catalogue/filters";
 import { useLiveCatalogueIndex } from "@/lib/catalogue/use-live-catalogue-index";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
+import { getDatasetSeriesCount } from "@/lib/catalogue/scale";
 import { cn } from "@/lib/utils";
 
 const TYPING_WORDS = ["segmentation", "classification", "detection"] as const;
@@ -40,13 +42,15 @@ type DatasetListProps = {
   generatedAt: string;
   classificationVocabulary: ClassificationVocabularyDoc;
   starredDatasetIds?: string[];
+  derivativeCounts?: Map<string, number>;
 };
 
 function scaleLabel(dataset: DatasetCatalogueEntry) {
+  const series = getDatasetSeriesCount(dataset);
   const parts = [
     dataset.n_patients != null ? `${dataset.n_patients} patients` : null,
     dataset.n_studies != null ? `${dataset.n_studies} studies` : null,
-    dataset.n_images != null ? `${dataset.n_images} images` : null,
+    series != null ? `${series} series` : null,
     dataset.dimensionality,
     dataset.is_longitudinal ? "longitudinal" : null,
   ].filter(Boolean);
@@ -121,9 +125,6 @@ function metadataBadges(
     vocabularyLabel(vocabulary, "access_level", dataset.access_level),
     dataset.dimensionality
       ? vocabularyLabel(vocabulary, "dimensionality", dataset.dimensionality)
-      : null,
-    dataset.status
-      ? vocabularyLabel(vocabulary, "status", dataset.status)
       : null,
     dataset.is_longitudinal ? "Longitudinal" : null,
   ].filter((value): value is string => Boolean(value));
@@ -204,6 +205,7 @@ export function DatasetList({
   generatedAt: initialGeneratedAt,
   classificationVocabulary: initialVocabulary,
   starredDatasetIds = [],
+  derivativeCounts,
 }: DatasetListProps) {
   const { datasets, generatedAt } = useLiveCatalogueIndex(
     initialDatasets,
@@ -371,7 +373,10 @@ export function DatasetList({
                 </div>
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {filtered.map((dataset, index) => (
+                  {filtered.map((dataset, index) => {
+                    const derivativeCount =
+                      derivativeCounts?.get(dataset.id) ?? 0;
+                    return (
                     <li
                       key={dataset.id}
                       className="dataset-row-enter"
@@ -394,8 +399,8 @@ export function DatasetList({
                                 <MedicalIcon name={modalityIcon(dataset)} />
                               </span>
                               <div className="min-w-0">
-                                <h2 className="truncate text-[length:var(--text-base)] font-medium text-foreground">
-                                  {dataset.name}
+                                <h2 className="flex min-w-0 items-center gap-1.5 truncate text-[length:var(--text-base)] font-medium text-foreground">
+                                  <span className="truncate">{dataset.name}</span>
                                 </h2>
                                 <p className="mt-1 line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
                                   {dataset.short_description}
@@ -411,6 +416,9 @@ export function DatasetList({
                                   {label}
                                 </Badge>
                               ))}
+                              {(derivativeCounts?.get(dataset.id) ?? 0) > 0 ? (
+                                <DerivativeCountBadge count={derivativeCount} />
+                              ) : null}
                               <Badge variant="outline">By {dataset.created_by}</Badge>
                             </div>
                           </div>
@@ -431,7 +439,8 @@ export function DatasetList({
                         />
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </>

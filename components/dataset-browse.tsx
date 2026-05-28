@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DatasetEditorPageHeader } from "@/components/dataset-editor-page-header";
 import { DatasetStarButton } from "@/components/dataset-star-button";
+import { DerivativeCountBadge } from "@/components/derivative-count-badge";
 import {
   Pagination,
   PaginationContent,
@@ -36,6 +37,7 @@ import {
   CATALOGUE_SEARCH_ACTION_CN,
   CATALOGUE_SECTION_CARD_CN,
 } from "@/lib/catalogue/catalogue-surface-styles";
+import { getDatasetSeriesCount } from "@/lib/catalogue/scale";
 import { cn } from "@/lib/utils";
 
 const ACTION_LINK_CLASSES =
@@ -71,12 +73,15 @@ type DatasetBrowseProps = {
   /** Total entries (use when paginating and `datasets` is only one page slice). */
   totalCount?: number;
   pagination?: DatasetBrowsePagination;
+  derivativeCounts?: Map<string, number>;
 };
 
 function scaleLabel(dataset: DatasetCatalogueEntry) {
+  const series = getDatasetSeriesCount(dataset);
   const parts = [
     dataset.n_patients != null ? `${dataset.n_patients} patients` : null,
     dataset.n_studies != null ? `${dataset.n_studies} studies` : null,
+    series != null ? `${series} series` : null,
     dataset.dimensionality,
     dataset.is_longitudinal ? "longitudinal" : null,
   ].filter(Boolean);
@@ -120,6 +125,7 @@ export function DatasetBrowse({
   emptyMessage = "No datasets yet. Add one from the sidebar or run a sync with GitHub.",
   totalCount,
   pagination,
+  derivativeCounts,
 }: DatasetBrowseProps) {
   const generatedLabel = formatGeneratedAt(generatedAt);
   const starred = new Set(starredDatasetIds);
@@ -261,6 +267,7 @@ export function DatasetBrowse({
           <>
             <ul className="flex w-full flex-col gap-2.5">
               {datasets.map((dataset) => {
+                const derivativeCount = derivativeCounts?.get(dataset.id) ?? 0;
                 const anatomySummary = getDatasetAnatomyTags(dataset)
                   .map(formatAnatomyTagLabel)
                   .join(", ");
@@ -315,6 +322,9 @@ export function DatasetBrowse({
                             <Badge variant="outline" className={DATASET_CARD_BADGE}>
                               Longitudinal
                             </Badge>
+                          ) : null}
+                          {derivativeCount > 0 ? (
+                            <DerivativeCountBadge count={derivativeCount} />
                           ) : null}
                           <Badge variant="outline" className={DATASET_CARD_BADGE}>
                             {dataset.access_level}

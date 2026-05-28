@@ -17,11 +17,19 @@ import {
 type DatasetDeleteButtonProps = {
   datasetId: string;
   datasetName: string;
+  /** Defaults to `/datasets`. Use parent detail URL when deleting a derivative. */
+  redirectTo?: string;
+  isDerivative?: boolean;
+  /** Icon-only trigger for dense rows (e.g. derivatives panel). */
+  compact?: boolean;
 };
 
 export function DatasetDeleteButton({
   datasetId,
   datasetName,
+  redirectTo = "/datasets",
+  isDerivative = false,
+  compact = false,
 }: DatasetDeleteButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -46,7 +54,7 @@ export function DatasetDeleteButton({
         return;
       }
       setOpen(false);
-      router.replace("/datasets");
+      router.replace(redirectTo);
       router.refresh();
     } finally {
       setPending(false);
@@ -55,15 +63,28 @@ export function DatasetDeleteButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="destructive"
-        size="sm"
-        onClick={() => setOpen(true)}
-      >
-        <Trash2Icon data-icon="inline-start" />
-        Delete
-      </Button>
+      {compact ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+          aria-label={`Delete ${datasetName}`}
+          onClick={() => setOpen(true)}
+        >
+          <Trash2Icon className="size-3.5" aria-hidden />
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={() => setOpen(true)}
+        >
+          <Trash2Icon data-icon="inline-start" />
+          Delete
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           showCloseButton
@@ -72,11 +93,12 @@ export function DatasetDeleteButton({
           <div className="flex flex-col gap-4 px-6 pb-5 pt-6 sm:px-7 sm:pt-7">
             <DialogHeader className="gap-3">
               <DialogTitle className="font-display text-[length:var(--text-xl)] leading-tight text-foreground">
-                Delete this dataset?
+                {isDerivative ? "Delete this derivative?" : "Delete this dataset?"}
               </DialogTitle>
               <DialogDescription className="text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
-                This will remove the catalogue JSON and any Markdown description
-                from GitHub. Git history remains the recovery path.
+                {isDerivative
+                  ? "This removes only this derivative's catalogue entry from GitHub. The parent dataset is not affected."
+                  : "This will remove the catalogue JSON and any Markdown description from GitHub. Git history remains the recovery path."}
               </DialogDescription>
             </DialogHeader>
             <p className="rounded-2xl border border-border bg-muted/50 px-3 py-2 text-[length:var(--text-sm)] font-medium text-foreground">
@@ -104,7 +126,11 @@ export function DatasetDeleteButton({
               disabled={pending}
               onClick={() => void deleteDataset()}
             >
-              {pending ? "Deleting..." : "Delete dataset"}
+              {pending
+                ? "Deleting..."
+                : isDerivative
+                  ? "Delete derivative"
+                  : "Delete dataset"}
             </Button>
           </div>
         </DialogContent>

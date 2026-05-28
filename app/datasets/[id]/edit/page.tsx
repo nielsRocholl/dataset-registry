@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalogue/editor-session";
 import { getDatasetIds } from "@/lib/catalogue/load-index";
 import { getDatasetEntryServer } from "@/lib/catalogue/resolve-dataset-server";
+import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
 import {
   CATALOGUE_BACK_LINK_CN,
@@ -29,10 +30,11 @@ export default async function EditDatasetPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [initialDataset, , classificationVocabulary] = await Promise.all([
+  const [initialDataset, , classificationVocabulary, index] = await Promise.all([
     getDatasetEntryServer(id),
     getCurrentCatalogueUser(),
     loadClassificationVocabularyLive(),
+    fetchCatalogueIndexLive(),
   ]);
   if (!initialDataset) {
     notFound();
@@ -65,15 +67,22 @@ export default async function EditDatasetPage({
         </Link>
 
         <DatasetEditorPageHeader
-          kicker="Edit"
+          kicker={
+            initialDataset.parent_dataset_id ? "Edit derivative" : "Edit"
+          }
           title={initialDataset.name}
-          subtitle="Refine the catalogue metadata without changing the dataset id."
+          subtitle={
+            initialDataset.parent_dataset_id
+              ? "Edit the change description and storage path; inherited metadata is fixed."
+              : "Refine the catalogue metadata without changing the dataset id."
+          }
         />
 
         <DatasetEditorForm
           mode="edit"
           initialDataset={initialDataset}
           classificationVocabulary={classificationVocabulary}
+          allDatasets={index.datasets}
         />
       </section>
     </main>

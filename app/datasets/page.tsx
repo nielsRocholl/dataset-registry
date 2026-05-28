@@ -1,6 +1,7 @@
 import { DatasetBrowseLive } from "@/components/dataset-browse-live";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
+import { filterRootDatasets } from "@/lib/catalogue/derivatives";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export default async function DatasetsPage({
     getCurrentCatalogueUser(),
   ]);
 
-  const totalCount = datasets.length;
+  const totalCount = filterRootDatasets(datasets).length;
   const totalPages =
     totalCount === 0 ? 1 : Math.ceil(totalCount / PAGE_SIZE);
 
@@ -39,6 +40,7 @@ export default async function DatasetsPage({
       generatedAt={generatedAt}
       starredDatasetIds={starredDatasetIds}
       totalCount={totalCount}
+      rootsOnly
       pagination={{ page, pageSize: PAGE_SIZE, pathname: "/datasets" }}
     />
   );

@@ -8,6 +8,7 @@ import type {
   BodyRegion,
   DatasetCatalogueEntry,
 } from "@/lib/catalogue/types";
+import { getDatasetSeriesCount } from "@/lib/catalogue/scale";
 
 export type FilterGroupId =
   | "modalities"
@@ -16,7 +17,7 @@ export type FilterGroupId =
   | "annotationTypes"
   | "tasks"
   | "accessLevels"
-  | "statuses"
+  | "downloadStatuses"
   | "dimensionalities"
   | "longitudinal"
   | "scale";
@@ -40,7 +41,7 @@ export const emptyDatasetFilters: DatasetFilterState = {
   annotationTypes: [],
   tasks: [],
   accessLevels: [],
-  statuses: [],
+  downloadStatuses: [],
   dimensionalities: [],
   longitudinal: [],
   scale: [],
@@ -67,6 +68,7 @@ export function annotationFilterPairs(
   return [
     { label: "Any annotation", value: "any" },
     ...vocabularyToFilterPairs(vocab, "annotation_type"),
+    { label: "AI labels", value: "ai_generated" },
   ];
 }
 
@@ -82,11 +84,11 @@ export function accessFilterPairs(
   return vocabularyToFilterPairs(vocab, "access_level");
 }
 
-export function statusFilterPairs(
-  vocab: ClassificationVocabularyDoc | undefined,
-): FilterOption[] {
-  return vocabularyToFilterPairs(vocab, "status");
-}
+export const downloadStatusFilterOptions: FilterOption[] = [
+  { label: "Downloaded", value: "downloaded" },
+  { label: "Not downloaded", value: "not_downloaded" },
+  { label: "Partial", value: "partial" },
+];
 
 export function dimensionalityFilterPairs(
   vocab: ClassificationVocabularyDoc | undefined,
@@ -102,8 +104,8 @@ export const scaleFilterOptions: FilterOption[] = [
   { label: "100+ patients", value: "patients_100" },
   { label: "500+ patients", value: "patients_500" },
   { label: "100+ studies", value: "studies_100" },
-  { label: "1k+ images", value: "images_1000" },
-  { label: "10k+ images", value: "images_10000" },
+  { label: "1k+ series", value: "series_1000" },
+  { label: "10k+ series", value: "series_10000" },
 ];
 
 /** Static fallback ordering when vocab is omitted (keywords only). */
@@ -303,10 +305,10 @@ function matchesScaleValue(dataset: DatasetCatalogueEntry, value: string) {
       return (dataset.n_patients ?? 0) >= 500;
     case "studies_100":
       return (dataset.n_studies ?? 0) >= 100;
-    case "images_1000":
-      return (dataset.n_images ?? 0) >= 1000;
-    case "images_10000":
-      return (dataset.n_images ?? 0) >= 10000;
+    case "series_1000":
+      return (getDatasetSeriesCount(dataset) ?? 0) >= 1000;
+    case "series_10000":
+      return (getDatasetSeriesCount(dataset) ?? 0) >= 10000;
     default:
       return false;
   }
@@ -334,6 +336,7 @@ function datasetMatchesGroup(
     case "annotationTypes": {
       const annotationTypes = getDatasetAnnotationTypes(dataset);
       return selected.some((value) => {
+        if (value === "ai_generated") return dataset.ai_generated_labels === true;
         if (value === "any") return hasAnyAnnotation(dataset);
         return annotationTypes.includes(value);
       });
@@ -342,8 +345,10 @@ function datasetMatchesGroup(
       return intersects(getDatasetTasks(dataset), selected);
     case "accessLevels":
       return selected.includes(dataset.access_level);
-    case "statuses":
-      return dataset.status ? selected.includes(dataset.status) : false;
+    case "downloadStatuses":
+      return dataset.download_status
+        ? selected.includes(dataset.download_status)
+        : false;
     case "dimensionalities":
       return dataset.dimensionality
         ? selected.includes(dataset.dimensionality)
@@ -373,7 +378,7 @@ export function datasetMatchesText(
     dataset.name,
     dataset.short_description,
     dataset.original_authors,
-    dataset.scanner_type,
+    dataset.download_status,
     ...modalities,
     ...modalities.map((value) => vocabularyLabel(vocab, "modality", value)),
     ...tasks,
@@ -385,10 +390,7 @@ export function datasetMatchesText(
     dataset.dimensionality
       ? vocabularyLabel(vocab, "dimensionality", dataset.dimensionality)
       : "",
-    dataset.status,
-    dataset.status
-      ? vocabularyLabel(vocab, "status", dataset.status)
-      : "",
+    dataset.ai_generated_labels ? "ai generated labels" : "",
     dataset.license,
     ...annotationTypes,
     ...annotationTypes.map((value) =>

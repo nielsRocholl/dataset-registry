@@ -59,12 +59,14 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
     return null;
   }
   const task = raw.task;
-  if (
-    !Array.isArray(task) ||
-    task.length === 0 ||
-    task.some((t) => typeof t !== "string" || t.length === 0)
-  ) {
-    return null;
+  if (task !== undefined) {
+    if (
+      !Array.isArray(task) ||
+      task.length === 0 ||
+      task.some((t) => typeof t !== "string" || t.length === 0)
+    ) {
+      return null;
+    }
   }
   if (
     raw.is_longitudinal !== undefined &&
@@ -87,9 +89,6 @@ function asEntry(raw: unknown, stem: string): DatasetCatalogueEntry | null {
     bodyRegions.length === 0 ||
     bodyRegions.some((r) => typeof r !== "string" || r.length === 0)
   ) {
-    return null;
-  }
-  if (raw.scanner_type !== undefined && typeof raw.scanner_type !== "string") {
     return null;
   }
   return raw as unknown as DatasetCatalogueEntry;

@@ -1,6 +1,10 @@
 import { DatasetList } from "@/components/dataset-list";
 import { loadClassificationVocabularyUncached } from "@/lib/catalogue/classification-vocabulary.server";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
+import {
+  derivativeCountByParent,
+  filterRootDatasets,
+} from "@/lib/catalogue/derivatives";
 import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { getStarredDatasetIds } from "@/lib/catalogue/stars";
 
@@ -13,14 +17,17 @@ export default async function DatasetsSearchPage() {
     getCurrentCatalogueUser(),
   ]);
   const { datasets, generated_at: generatedAt } = catalogue;
+  const rootDatasets = filterRootDatasets(datasets);
+  const derivativeCounts = derivativeCountByParent(datasets);
   const starredDatasetIds = user ? await getStarredDatasetIds(user.id) : [];
   return (
     <DatasetList
       key={vocabulary.updated_at}
-      datasets={datasets}
+      datasets={rootDatasets}
       generatedAt={generatedAt}
       classificationVocabulary={vocabulary}
       starredDatasetIds={starredDatasetIds}
+      derivativeCounts={derivativeCounts}
     />
   );
 }

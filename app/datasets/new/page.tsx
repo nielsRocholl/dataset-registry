@@ -2,24 +2,38 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeftIcon } from "lucide-react";
 
-import { DatasetEditorPageHeader } from "@/components/dataset-editor-page-header";
-import { DatasetEditorForm } from "@/components/dataset-editor-form";
+import { DatasetNewWorkspace } from "@/components/dataset-new-workspace";
+import { fetchCatalogueIndexLive } from "@/lib/catalogue/fetch-index-live";
 import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
 import { getCurrentCatalogueUser } from "@/lib/catalogue/editor-session";
+import { isDerivative } from "@/lib/catalogue/derivatives";
 import {
   CATALOGUE_BACK_LINK_CN,
   CATALOGUE_PAGE_MAIN_CN,
 } from "@/lib/catalogue/catalogue-surface-styles";
 import { cn } from "@/lib/utils";
 
-export default async function NewDatasetPage() {
-  const [user, classificationVocabulary] = await Promise.all([
+export default async function NewDatasetPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ parent?: string }>;
+}) {
+  const [user, classificationVocabulary, index, sp] = await Promise.all([
     getCurrentCatalogueUser(),
     loadClassificationVocabularyLive(),
+    fetchCatalogueIndexLive(),
+    searchParams,
   ]);
   if (!user) {
     redirect("/unauthorized");
   }
+
+  const parentQuery = sp.parent?.trim() ?? "";
+  const parentEntry = parentQuery
+    ? index.datasets.find((d) => d.id === parentQuery)
+    : undefined;
+  const validParent =
+    parentEntry && !isDerivative(parentEntry) ? parentEntry.id : undefined;
 
   return (
     <main
@@ -43,15 +57,11 @@ export default async function NewDatasetPage() {
           Back to datasets
         </Link>
 
-        <DatasetEditorPageHeader
-          kicker="New entry"
-          title="Register a dataset"
-          subtitle="Add the minimum metadata researchers need to find, judge, and request access to the dataset."
-        />
-
-        <DatasetEditorForm
-          mode="new"
+        <DatasetNewWorkspace
           classificationVocabulary={classificationVocabulary}
+          allDatasets={index.datasets}
+          initialParentId={validParent}
+          lockParent={Boolean(validParent)}
         />
       </section>
     </main>

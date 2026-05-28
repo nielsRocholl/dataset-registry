@@ -17,6 +17,7 @@ import {
   annotationFilterPairs,
   bodyRegionFilterPairs,
   dimensionalityFilterPairs,
+  downloadStatusFilterOptions,
   emptyDatasetFilters,
   getActiveFilterCount,
   getAnatomyFilterOptions,
@@ -24,7 +25,6 @@ import {
   modalityFilterPairs,
   longitudinalFilterOptions,
   scaleFilterOptions,
-  statusFilterPairs,
   taskFilterPairs,
   type DatasetFilterState,
   type FilterGroupId,
@@ -52,12 +52,12 @@ const GROUP_BLUEPRINT = [
   { id: "annotationTypes" as const, title: "Annotation", optionsKey: null },
   { id: "tasks" as const, title: "Research task", optionsKey: "task" as const },
   { id: "accessLevels" as const, title: "Access", optionsKey: "access_level" as const },
+  { id: "downloadStatuses" as const, title: "Download", optionsKey: null },
   {
     id: "dimensionalities" as const,
     title: "Shape",
     optionsKey: "dimensionality" as const,
   },
-  { id: "statuses" as const, title: "Lifecycle", optionsKey: "status" as const },
   { id: "longitudinal" as const, title: "Study design", optionsKey: null },
   { id: "scale" as const, title: "Scale", optionsKey: null },
 ];
@@ -78,6 +78,7 @@ function resolveBlueprintOptions(
 ): FilterOption[] {
   if (row.id === "scale") return scaleFilterOptions;
   if (row.id === "longitudinal") return longitudinalFilterOptions;
+  if (row.id === "downloadStatuses") return downloadStatusFilterOptions;
   if (row.id === "annotationTypes") return annotationFilterPairs(vocabulary);
   if (!row.optionsKey) return [];
   switch (row.optionsKey) {
@@ -89,8 +90,6 @@ function resolveBlueprintOptions(
       return taskFilterPairs(vocabulary);
     case "access_level":
       return accessFilterPairs(vocabulary);
-    case "status":
-      return statusFilterPairs(vocabulary);
     case "dimensionality":
       return dimensionalityFilterPairs(vocabulary);
     default:

@@ -40,6 +40,66 @@ function vocabAllow(field) {
   return new Set((arr ?? []).map((x) => x.value));
 }
 
+const DOWNLOAD_STATUSES = new Set(["downloaded", "not_downloaded", "partial"]);
+
+/**
+ * @param {Record<string, unknown>} data
+ * @param {Map<string, Record<string, unknown>>} parentById
+ * @returns {string[]}
+ */
+function extraErrors(data, parentById) {
+  /** @type {string[]} */
+  const out = [];
+  const ds = data.download_status;
+  if (typeof ds === "string" && !DOWNLOAD_STATUSES.has(ds)) {
+    out.push("download_status: unknown value");
+  }
+  const parentId = data.parent_dataset_id;
+  if (typeof parentId === "string" && parentId.trim() !== "") {
+    const note = data.derivative_note;
+    if (typeof note !== "string" || note.trim() === "") {
+      out.push("derivative_note: required when parent_dataset_id is set");
+    }
+    const parent = parentById.get(parentId);
+    if (!parent) {
+      out.push(`parent_dataset_id: parent "${parentId}" not found in catalogue`);
+    } else if (
+      typeof parent.parent_dataset_id === "string" &&
+      parent.parent_dataset_id.trim() !== ""
+    ) {
+      out.push(
+        "parent_dataset_id: cannot derive from a derivative (one level only)",
+      );
+    }
+    if (typeof data.id === "string" && data.id === parentId) {
+      out.push("parent_dataset_id: cannot be the same as dataset id");
+    }
+  }
+  const papers = data.related_papers;
+  if (Array.isArray(papers)) {
+    for (const item of papers) {
+      if (!item || typeof item !== "object") {
+        out.push("related_papers: invalid entry");
+        break;
+      }
+      const url = /** @type {Record<string, unknown>} */ (item).url;
+      if (typeof url === "string" && url.trim() !== "") {
+        try {
+          const u = new URL(url);
+          if (u.protocol !== "http:" && u.protocol !== "https:") {
+            out.push("related_papers: url must be http or https");
+            break;
+          }
+        } catch {
+          out.push("related_papers: invalid url");
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * @param {Record<string, unknown>} data
  * @returns {string[]}
@@ -94,8 +154,6 @@ function vocabErrors(data) {
       }
     }
   }
-  const st = data.status;
-  if (typeof st === "string" && !vocabAllow("status").has(st)) out.push(`status: unknown`);
   const dim = data.dimensionality;
   if (
     typeof dim === "string" &&
@@ -139,6 +197,18 @@ if (files.length === 0) {
   process.exit(1);
 }
 
+/** @type {Map<string, Record<string, unknown>>} */
+const parentById = new Map();
+for (const f of files.sort()) {
+  const p = path.join(datasetsDir, f);
+  try {
+    const data = JSON.parse(fs.readFileSync(p, "utf8"));
+    if (typeof data.id === "string") parentById.set(data.id, data);
+  } catch {
+    /* per-file errors below */
+  }
+}
+
 for (const f of files.sort()) {
   const p = path.join(datasetsDir, f);
   let data;
@@ -168,6 +238,11 @@ for (const f of files.sort()) {
   const storageBad = storageErrors(data);
   if (storageBad.length) {
     console.error(`${f}: storage:`, storageBad);
+    failed = true;
+  }
+  const extraBad = extraErrors(data, parentById);
+  if (extraBad.length) {
+    console.error(`${f}:`, extraBad);
     failed = true;
   }
 }

@@ -10,7 +10,6 @@
     "short_description",
     "modality",
     "body_regions",
-    "task",
     "access_level",
     "created_by",
     "created_at",
@@ -30,6 +29,19 @@
       "minLength": 1,
       "maxLength": 2000,
       "description": "Catalogue description for list and detail summary; need not be brief (UI label: Description)."
+    },
+    "parent_dataset_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$",
+      "description": "Slug of the parent dataset when this entry is a derivative."
+    },
+    "derivative_note": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "What changed relative to the parent dataset; required when parent_dataset_id is set."
     },
     "storage_on_server": {
       "type": "boolean",
@@ -80,6 +92,12 @@
       "uniqueItems": true,
       "description": "Optional normalized organ or structure tags, e.g. liver, lung, brain."
     },
+    "primary_tumor_location": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Optional primary tumor location for oncology datasets."
+    },
     "task": {
       "type": "array",
       "items": {
@@ -103,21 +121,32 @@
       "uniqueItems": true,
       "description": "Optional annotation representation hints used for research filtering."
     },
+    "ai_generated_labels": {
+      "type": "boolean",
+      "description": "True when any annotations were produced by an AI model rather than a human annotator."
+    },
     "access_level": {
       "type": "string",
       "minLength": 1,
       "maxLength": 64,
       "description": "Controlled value from vocabulary (access_level)."
     },
-    "status": {
+    "download_status": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 64,
-      "description": "Optional lifecycle hint; omit if unknown. Controlled vocabulary (status)."
+      "enum": ["downloaded", "not_downloaded", "partial"],
+      "description": "Whether raw data is present on group storage."
     },
     "n_patients": { "type": "integer", "minimum": 0 },
     "n_studies": { "type": "integer", "minimum": 0 },
-    "n_images": { "type": "integer", "minimum": 0 },
+    "n_series": { "type": "integer", "minimum": 0 },
+    "field_of_view": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Anatomical coverage of each acquisition (e.g. whole body, thorax only)."
+    },
+    "cases_healthy": { "type": "integer", "minimum": 0 },
+    "cases_pathological": { "type": "integer", "minimum": 0 },
     "dimensionality": {
       "type": "string",
       "minLength": 1,
@@ -134,17 +163,27 @@
       "maxLength": 128,
       "description": "Optional contrast or acquisition phase (e.g. arterial, portal venous) or clinical trial phase label."
     },
-    "scanner_type": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 256,
-      "description": "Optional scanner or acquisition device label (e.g. Siemens SOMATOM Force CT)."
-    },
     "main_disease_type": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
       "description": "Optional primary disease or condition focus (e.g. hepatocellular carcinoma, COPD)."
+    },
+    "related_papers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "url"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          }
+        }
+      }
     },
     "license": {
       "type": "string",
@@ -213,6 +252,20 @@
         "required": ["internal_storage_path"],
         "properties": {
           "internal_storage_path": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["parent_dataset_id"],
+        "properties": {
+          "parent_dataset_id": { "type": "string", "minLength": 1 }
+        }
+      },
+      "then": {
+        "required": ["derivative_note"],
+        "properties": {
+          "derivative_note": { "type": "string", "minLength": 1 }
         }
       }
     }

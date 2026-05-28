@@ -155,11 +155,6 @@ export function vocabularyValidationErrorsForDataset(
       }
     }
   }
-  const st = data.status;
-  if (typeof st === "string") {
-    const allow = allowedValueSet(doc, "status");
-    if (!allow.has(st)) errs.push(`status "${st}" is not in the catalogue vocabulary`);
-  }
   const dim = data.dimensionality;
   if (typeof dim === "string") {
     const allow = allowedValueSet(doc, "dimensionality");
@@ -186,9 +181,6 @@ export function countClassificationValueUsage(
         break;
       case "access_level":
         if (d.access_level === value) n++;
-        break;
-      case "status":
-        if (d.status === value) n++;
         break;
       case "dimensionality":
         if (d.dimensionality === value) n++;

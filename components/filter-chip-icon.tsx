@@ -2,11 +2,9 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   Activity,
-  Archive,
   Box,
   Building2,
   CheckCircle2,
-  Circle,
   CalendarClock,
   CircleOff,
   Route,
@@ -25,6 +23,7 @@ import {
   ScanLine,
   ScanSearch,
   Scissors,
+  Sparkles,
   Square,
   Tags,
   Users,
@@ -75,6 +74,8 @@ export function getFilterChipIcon(
       switch (value) {
         case "any":
           return chip(Layers);
+        case "ai_generated":
+          return chip(Sparkles);
         case "voxel_mask":
           return chip(Box);
         case "mask_2d":
@@ -123,8 +124,8 @@ export function getFilterChipIcon(
           return chip(Users);
         case "studies_100":
           return chip(FolderOpen);
-        case "images_1000":
-        case "images_10000":
+        case "series_1000":
+        case "series_10000":
           return chip(Layers);
         default:
           return chip(Layers);
@@ -140,16 +141,16 @@ export function getFilterChipIcon(
           return chip(Lock);
       }
     }
-    case "statuses": {
+    case "downloadStatuses": {
       switch (value) {
-        case "draft":
-          return chip(Circle);
-        case "active":
+        case "downloaded":
           return chip(CheckCircle2);
-        case "deprecated":
-          return chip(Archive);
+        case "not_downloaded":
+          return chip(CircleOff);
+        case "partial":
+          return chip(Layers);
         default:
-          return chip(Circle);
+          return chip(FolderOpen);
       }
     }
     case "dimensionalities": {

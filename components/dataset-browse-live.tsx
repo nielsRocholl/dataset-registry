@@ -7,6 +7,10 @@ import {
   type DatasetBrowsePagination,
 } from "@/components/dataset-browse";
 import { useLiveCatalogueIndex } from "@/lib/catalogue/use-live-catalogue-index";
+import {
+  derivativeCountByParent,
+  isDerivative,
+} from "@/lib/catalogue/derivatives";
 import type { DatasetCatalogueEntry } from "@/lib/catalogue/types";
 
 type DatasetBrowseLiveProps = {
@@ -20,6 +24,8 @@ type DatasetBrowseLiveProps = {
   emptyMessage?: string;
   totalCount?: number;
   pagination?: DatasetBrowsePagination;
+  /** Hide derivatives from the list (main catalogue browse). */
+  rootsOnly?: boolean;
   /** Keep only datasets created by this user id (My datasets). */
   createdByUserId?: string;
   /** Keep only datasets whose id is in this list (Starred). */
@@ -33,11 +39,17 @@ export function DatasetBrowseLive({
   starredOnlyIds,
   pagination,
   totalCount: serverTotalCount,
+  rootsOnly = false,
   ...rest
 }: DatasetBrowseLiveProps) {
   const { datasets: liveDatasets, generatedAt } = useLiveCatalogueIndex(
     initialDatasets,
     initialGeneratedAt,
+  );
+
+  const derivativeCounts = useMemo(
+    () => derivativeCountByParent(liveDatasets),
+    [liveDatasets],
   );
 
   const { datasets, totalCount } = useMemo(() => {
@@ -48,6 +60,9 @@ export function DatasetBrowseLive({
     if (starredOnlyIds) {
       const allow = new Set(starredOnlyIds);
       rows = rows.filter((d) => allow.has(d.id));
+    }
+    if (rootsOnly) {
+      rows = rows.filter((d) => !isDerivative(d));
     }
     rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -64,6 +79,7 @@ export function DatasetBrowseLive({
     liveDatasets,
     createdByUserId,
     starredOnlyIds,
+    rootsOnly,
     pagination,
     serverTotalCount,
   ]);
@@ -75,6 +91,7 @@ export function DatasetBrowseLive({
       generatedAt={generatedAt}
       totalCount={totalCount}
       pagination={pagination}
+      derivativeCounts={derivativeCounts}
     />
   );
 }

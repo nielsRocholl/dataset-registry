@@ -12,6 +12,7 @@ import {
   formatStableJson,
   validateDatasetPayload,
 } from "@/lib/catalogue/dataset-validator";
+import { isDerivative } from "@/lib/catalogue/derivatives";
 import { loadClassificationVocabularyLive } from "@/lib/catalogue/classification-vocabulary.server";
 import { CATALOGUE_INDEX_CACHE_TAG } from "@/lib/catalogue/fetch-index-live";
 import { clearStarsForDataset } from "@/lib/catalogue/stars";
@@ -132,6 +133,43 @@ export async function PUT(req: Request, ctx: RouteCtx) {
     if (existingDataset) {
       const denied = await assertCatalogueMutation(req, existingDataset);
       if (denied) return denied;
+    }
+
+    const parentId = body.parent_dataset_id;
+    if (typeof parentId === "string" && parentId.trim() !== "") {
+      const parentBlob = await getBlobFile(
+        repo,
+        catalogueJsonPath(parentId),
+        branch,
+      );
+      if (!parentBlob) {
+        return NextResponse.json(
+          { error: "parent dataset not found" },
+          { status: 422 },
+        );
+      }
+      const parent = parseDataset(parentBlob.text);
+      if (!parent) {
+        return NextResponse.json(
+          { error: "parent dataset JSON is malformed" },
+          { status: 422 },
+        );
+      }
+      if (isDerivative(parent)) {
+        return NextResponse.json(
+          {
+            error:
+              "cannot derive from a derivative (one level only)",
+          },
+          { status: 422 },
+        );
+      }
+      if (parentId === id) {
+        return NextResponse.json(
+          { error: "parent_dataset_id cannot equal dataset id" },
+          { status: 422 },
+        );
+      }
     }
 
     const now = new Date().toISOString();
