@@ -1,0 +1,47 @@
+{
+  "id": "kits-23",
+  "name": "KiTS 23",
+  "short_description": "KiTS23 is a public multi-institutional benchmark dataset released for the 2023 Kidney and Kidney Tumor Segmentation Challenge. It contains contrast-enhanced abdominal CT scans of patients with renal masses, with voxel-level semantic segmentation labels for kidneys, renal tumours and renal cysts. The dataset is designed for development and benchmarking of automatic 3D segmentation algorithms, and is commonly used for kidney/tumour/cyst segmentation, radiomics preprocessing, model validation and algorithm comparison in renal tumour imaging.",
+  "internal_storage_path": "/oncology/raw_datasets",
+  "modality": [
+    "CT"
+  ],
+  "body_regions": [
+    "abdomen"
+  ],
+  "anatomy_tags": [
+    "kidney",
+    "renal-tumor",
+    "renal-cyst"
+  ],
+  "primary_tumor_location": "Kidney",
+  "task": [
+    "segmentation"
+  ],
+  "annotation_types": [
+    "voxel_mask"
+  ],
+  "access_level": "public",
+  "download_status": "partial",
+  "n_patients": 599,
+  "cases_healthy": 0,
+  "cases_pathological": 599,
+  "phase": "Contrast-enhanced CT; includes late arterial/corticomedullary, portal venous and nephrogenic phase cases.",
+  "main_disease_type": "Renal tumours, renal cysts",
+  "related_papers": [
+    {
+      "title": "2023 Kidney and Kidney Tumor Segmentation Challenge",
+      "url": "https://doi.org/10.5281/zenodo.7840134"
+    }
+  ],
+  "license": "CC BY-NC-SA 4.0",
+  "access_notes": "Public research dataset from the KiTS23 challenge. Data are licensed for non-commercial use under CC BY-NC-SA 4.0. Commercial use requires contacting the dataset organisers. Users should cite the official KiTS challenge paper and/or the Zenodo record when using the dataset.",
+  "original_authors": "KiTS Challenge / Nicholas Heller and collaborators; University of Minnesota, German Cancer Research Center, Cleveland Clinic and associated challenge contributors.",
+  "bibtex_citation": "@article{heller2023kits21,\n  title={The KiTS21 Challenge: Automatic segmentation of kidneys, renal tumors, and renal cysts in corticomedullary-phase CT},\n  author={Heller, Nicholas and Isensee, Fabian and Trofimova, Dasha and Tejpaul, Resha and Zhao, Zhongchen and Chen, Huai and Wang, Lisheng and Golts, Alex and Khapun, Daniel and Shats, Daniel and others},\n  year={2023},\n  eprint={2307.01984},\n  archivePrefix={arXiv},\n  primaryClass={cs.CV},\n  doi={10.48550/arXiv.2307.01984}\n}",
+  "upstream_url": "https://doi.org/10.5281/zenodo.7840134",
+  "created_by": "Thommaso Russo",
+  "created_by_user_id": "177cae65-8ee9-49d9-8d74-d43fc0227593",
+  "created_by_email": "t.russo.1994@gmail.com",
+  "created_at": "2026-06-04T08:53:53.547Z",
+  "updated_at": "2026-06-04T08:53:53.547Z"
+}
