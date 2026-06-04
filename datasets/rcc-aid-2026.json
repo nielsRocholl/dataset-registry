@@ -1,0 +1,49 @@
+{
+  "id": "rcc-aid-2026",
+  "name": "RCC-AID Rencal Cell Carcinoma AI Dataset",
+  "short_description": "Voxel-level annotations of kidneys, primary tumours, and Cyst, plus addtionel tumour-level labels (clear cell Renal Cell Carcinoma, papillary RCC, chromophobe RCC, Cysts)\n\nCan be used for classification / segmentation tasks of renal lesion applications.",
+  "storage_on_server": false,
+  "modality": [
+    "CT"
+  ],
+  "body_regions": [
+    "abdomen"
+  ],
+  "anatomy_tags": [
+    "kidney"
+  ],
+  "primary_tumor_location": "kidney",
+  "task": [
+    "classification",
+    "detection",
+    "segmentation"
+  ],
+  "annotation_types": [
+    "voxel_mask"
+  ],
+  "ai_generated_labels": true,
+  "access_level": "public",
+  "download_status": "downloaded",
+  "n_patients": 101,
+  "n_series": 142,
+  "field_of_view": "abdomen",
+  "cases_pathological": 142,
+  "dimensionality": "3D",
+  "phase": "multi-phase CT (only one phase per scan, non-contrast excluded)",
+  "main_disease_type": "Renal Cell Carcinoma",
+  "related_papers": [
+    {
+      "title": "Renal Cell Carcinoma AI Dataset for Medical Imaging Research",
+      "url": "https://www.medrxiv.org/content/10.64898/2026.04.22.26351451v1"
+    }
+  ],
+  "license": "CC-BY-4.0 for Annotations; CC-BY-3.0 for NiFTIs",
+  "original_authors": "Sarah de Boer , Hartmut Häntze , Sebastian Ziegelmayer , Tommaso Russo, Bram van Ginneken , Mathias Prokop , Keno Bressem , Alessa Hering",
+  "bibtex_citation": "@article{deBoer2026Accessible,\n  author  = {de Boer, Sarah and H{\\\"a}ntze, Hartmut and Ziegelmayer, Sebastian and van Ginneken, Bram and Prokop, Mathias and Bressem, Keno and Hering, Alessa},\n  title   = {Accessible and Reproducible Renal Cell Carcinoma Research Through Open-Sourcing Data and Annotations},\n  journal = {medRxiv},\n  year    = {2026},\n  month   = apr,\n  day     = {23},\n  doi     = {10.64898/2026.04.22.26351451},\n  url     = {https://doi.org/10.64898/2026.04.22.26351451},\n  note    = {medRxiv preprint}\n}",
+  "upstream_url": "https://zenodo.org/records/19630298",
+  "created_by": "Hartmut Häntze",
+  "created_by_user_id": "2760bd38-c0f8-40e1-98b9-a08873996fe4",
+  "created_by_email": "haentze@pm.me",
+  "created_at": "2026-06-04T07:49:09.491Z",
+  "updated_at": "2026-06-04T07:49:09.491Z"
+}
