@@ -1,0 +1,37 @@
+{
+  "id": "amos22",
+  "name": "AMOS22 Dataset",
+  "short_description": "A dataset of abdominal CT scans with accompanying organ segmentation masks. Can be used in combination with abnormality labels extracted by LEAVS from radiological reports.",
+  "internal_storage_path": "/data/oncology/experiments/jantagscherer/organ-abnormality-classification/datasets/amos22/*",
+  "modality": [
+    "CT"
+  ],
+  "body_regions": [
+    "abdomen"
+  ],
+  "annotation_types": [
+    "voxel_mask"
+  ],
+  "access_level": "public",
+  "download_status": "downloaded",
+  "n_patients": 600,
+  "n_studies": 1,
+  "n_series": 1,
+  "field_of_view": "Abdomen",
+  "dimensionality": "3D",
+  "related_papers": [
+    {
+      "title": "AMOS: A Large-Scale Abdominal Multi-Organ Benchmark for Versatile Medical Image Segmentation",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/ee604e1bedbd069d9fc9328b7b9584be-Paper-Datasets_and_Benchmarks.pdf"
+    }
+  ],
+  "license": "CC-BY-SA 4.0",
+  "original_authors": "Yuanfeng Ji, Haotian Bai, Chongjian Ge, Jie Yang, Ye Zhu, Ruimao Zhang, Zhen Li2, Lingyan Zhang, Wanling Ma, Xiang Wan, Ping Luo",
+  "bibtex_citation": "@article{ji2022amos,\n    title     = {Amos: A large-scale abdominal multi-organ benchmark for versatile \n                 medical image segmentation},\n    author    = {Ji, Yuanfeng and Bai, Haotian and Ge, Chongjian and Yang, Jie \n                 and Zhu, Ye and Zhang, Ruimao and Li, Zhen and Zhanng, Lingyan \n                 and Ma, Wanling and Wan, Xiang and others},\n    journal   = {Advances in neural information processing systems},\n    volume    = {35},\n    pages     = {36722--36732},\n    year      = {2022}\n}",
+  "upstream_url": "https://zenodo.org/records/7262581",
+  "created_by": "Jan Tagscherer",
+  "created_by_user_id": "33df5a8b-fe6c-4173-8a44-aed0cd6dc999",
+  "created_by_email": "jan.tagscherer@icloud.com",
+  "created_at": "2026-06-04T07:44:37.917Z",
+  "updated_at": "2026-06-04T07:44:37.917Z"
+}
