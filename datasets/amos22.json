@@ -1,6 +1,6 @@
 {
   "id": "amos22",
-  "name": "AMOS22 Dataset",
+  "name": "AMOS22",
   "short_description": "A dataset of abdominal CT scans with accompanying organ segmentation masks. Can be used in combination with abnormality labels extracted by LEAVS from radiological reports.",
   "internal_storage_path": "/data/oncology/experiments/jantagscherer/organ-abnormality-classification/datasets/amos22/*",
   "modality": [
@@ -33,5 +33,5 @@
   "created_by_user_id": "33df5a8b-fe6c-4173-8a44-aed0cd6dc999",
   "created_by_email": "jan.tagscherer@icloud.com",
   "created_at": "2026-06-04T07:44:37.917Z",
-  "updated_at": "2026-06-04T07:44:37.917Z"
+  "updated_at": "2026-06-04T07:49:48.736Z"
 }
