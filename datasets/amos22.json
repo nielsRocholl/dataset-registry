@@ -16,7 +16,7 @@
   "download_status": "downloaded",
   "n_patients": 600,
   "n_studies": 1,
-  "n_series": 1,
+  "n_series": 600,
   "field_of_view": "Abdomen",
   "dimensionality": "3D",
   "related_papers": [
@@ -33,5 +33,5 @@
   "created_by_user_id": "33df5a8b-fe6c-4173-8a44-aed0cd6dc999",
   "created_by_email": "jan.tagscherer@icloud.com",
   "created_at": "2026-06-04T07:44:37.917Z",
-  "updated_at": "2026-06-04T07:49:48.736Z"
+  "updated_at": "2026-06-04T07:59:47.961Z"
 }
