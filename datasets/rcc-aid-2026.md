@@ -8,4 +8,4 @@
 - 5. Rejection of: non-contrast phases, uncertain cases, bad segmentations
 
 ## Known issues
-Students selected a primary lesion plus cysts. In some cases there seem to be a secondary tumour that remains unsegmented, because the students didnt select it.
+Students selected a primary lesion plus cysts. In some cases there seem to be secondary tumours that remain unsegmented, because the students didnt select them.
